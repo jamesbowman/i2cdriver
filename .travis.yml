@@ -1,0 +1,24 @@
+language: generic
+script: ./testall
+
+matrix:
+    include:
+        - os: linux
+          sudo: required
+          python: 2.7
+          install: pip install pyserial
+          env: TOXENV=py27
+        - os: linux
+          sudo: required
+          python: 3.4
+          install: pip install pyserial
+          env: TOXENV=py34
+        - os: linux
+          sudo: required
+          python: 3.5
+          install: pip install pyserial
+          env: TOXENV=py35
+        - os: osx
+          sudo: required
+          install: pip install pyserial
+          env: TOXENV=py33
