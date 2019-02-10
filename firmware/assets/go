@@ -1,0 +1,3 @@
+set -e
+
+python2 mkfont.py

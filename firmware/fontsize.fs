@@ -1,0 +1,1 @@
+&1385 constant FONTDATA_SIZE
