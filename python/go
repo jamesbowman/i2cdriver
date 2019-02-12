@@ -1,0 +1,12 @@
+set -e
+python2 setup.py install --user
+exit
+
+echo Python3:
+python3 ./confirm.py 1
+echo Python2:
+python2 ./confirm.py 1
+
+# ./thrash.py 3
+./eve.py 9999
+python3 ./watch.py
