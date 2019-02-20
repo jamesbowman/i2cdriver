@@ -16,6 +16,12 @@ setup(name='i2cdriver',
       description='I2CDriver is a desktop I2C interface',
       long_description=LONG,
       license='GPL',
-      py_modules=['i2cdriver'],
-      install_requires=['pyserial']
+      install_requires=['pyserial'],
+      py_modules = [
+        'i2cdriver',
+        'lm75b',
+        'EDS',
+        'ht16k33',
+        'bargraph',
+      ],
       )
