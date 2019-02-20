@@ -69,11 +69,9 @@ class I2CDriver:
         if reset == "never":
             return
         if reset or (self.scl, self.sda) != (1, 1):
-            print('RESET')
             if self.reset() != 3:
-                assert 0
+                assert 0, "I2C bus is busy"
             self.getstatus()
-            # self.reboot()
         self.setspeed(100)
 
     if PYTHON2:
