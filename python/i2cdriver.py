@@ -235,10 +235,22 @@ class I2CDriver:
             self.scl,
             self.sda)
 
-    def scan(self):
-        for i in range(8, 120):
-            print("%02x: %s" % (i, ["-", "PRESENT"][self.start(i, 0)]))
-            self.stop();
+    def scan(self, silent = False):
+        """ Performs an I2C bus scan.
+        If silent is False, prints a map of devices.
+        Returns a list of the device addresses. """
+        self.ser.write(b'd')
+        d = struct.unpack("112c", self.ser.read(112))
+        if not silent:
+            for a,p in enumerate(d, 8):
+                if p == b"1":
+                    st = "%02X" % a
+                else:
+                    st = "--"
+                sys.stdout.write(st + " ")
+                if (a % 8) == 7:
+                    sys.stdout.write("\n")
+        return [a for a,p in enumerate(d, 8) if p == b"1"]
 
     def capture_start(self):
         self.__ser_w([ord('c')])
