@@ -175,3 +175,29 @@ class EPROM:
         self.i2.stop()
         return r
         self.i2.stop()
+
+class CLOCK:
+    """ CLOCK is a HT1382 I2C/3-Wire Real Time Clock with a 32 kHz crystal """
+    def __init__(self, i2, a = 0x68):
+        self.i2 = i2
+        self.a = a
+        
+        self.dump()
+        self.i2.regwr(self.a, 7, 0)
+        self.i2.regwr(self.a, 0, 0)
+        self.dump()
+
+        while 1:
+            self.dump()
+            time.sleep(1)
+
+    def dump(self):
+        self.i2.start(self.a, 0)
+        self.i2.write([0])
+        self.i2.stop()
+        self.i2.start(self.a, 1)
+        print(list(self.i2.read(16)))
+        self.i2.stop()
+
+    def read(self):
+        pass
