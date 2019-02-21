@@ -3,6 +3,7 @@ Drivers for electricdollarstore I2C parts
 """
 import struct
 import time
+import datetime
 
 class Dig2:
     """ DIG2 is a 2-digit 7-segment LED display """
@@ -182,14 +183,36 @@ class CLOCK:
         self.i2 = i2
         self.a = a
         
-        self.dump()
+    def set(self, t = None):
+        if t is None:
+            t = datetime.datetime.now()
+        def bcd(x):
+            return (x % 10) + 16 * (x // 10)
         self.i2.regwr(self.a, 7, 0)
-        self.i2.regwr(self.a, 0, 0)
-        self.dump()
+        self.i2.regwr(self.a, 6, bcd(t.year % 100))
+        self.i2.regwr(self.a, 5, 1 + t.weekday())
+        self.i2.regwr(self.a, 4, bcd(t.month))
+        self.i2.regwr(self.a, 3, bcd(t.day))
+        self.i2.regwr(self.a, 2, 0x80 | bcd(t.hour))    # use 24-hour mode
+        self.i2.regwr(self.a, 1, bcd(t.minute))
+        self.i2.regwr(self.a, 0, bcd(t.second))
 
-        while 1:
-            self.dump()
-            time.sleep(1)
+    def read(self):
+        self.i2.start(self.a, 0)
+        self.i2.write([0])
+        self.i2.stop()
+        self.i2.start(self.a, 1)
+        (ss,mm,hh,dd,MM,ww,yy) = (struct.unpack("7B", self.i2.read(7)))
+        self.i2.stop()
+        def dec(x):
+            return (x % 16) + 10 * (x // 16)
+        return datetime.datetime(
+            2000 + dec(yy),
+            dec(MM),
+            dec(dd),
+            dec(hh & 0x7f),
+            dec(mm),
+            dec(ss))
 
     def dump(self):
         self.i2.start(self.a, 0)
@@ -198,6 +221,3 @@ class CLOCK:
         self.i2.start(self.a, 1)
         print(list(self.i2.read(16)))
         self.i2.stop()
-
-    def read(self):
-        pass
