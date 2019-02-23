@@ -2,6 +2,7 @@ set -e
 
 rm -rf build/*
 make -f linux/Makefile
+build/i2ccl /dev/ttyUSB0 i
 
 # make -f win32/Makefile
 # cp build/spicl.exe /data/win10/

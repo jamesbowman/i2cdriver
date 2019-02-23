@@ -257,89 +257,82 @@ void i2c_connect(I2CDriver *sd, const char* portname)
   sd->e_ccitt_crc = sd->ccitt_crc;
 }
 
+static int i2c_ack(I2CDriver *sd)
+{
+  uint8_t a[1];
+  if (readFromSerialPort(sd->port, a, 1) != 1)
+    return 0;
+  return (a[0] & 1) != 0;
+}
+
 void i2c_getstatus(I2CDriver *sd)
 {
   char readbuffer[100];
   int bytesRead;
+  char mode[80];
 
   writeToSerialPort(sd->port, "?", 1);
   bytesRead = readFromSerialPort(sd->port, readbuffer, 80);
   readbuffer[bytesRead] = 0;
   // printf("%d Bytes were read: %.*s\n", bytesRead, bytesRead, readbuffer);
-  sscanf(readbuffer, "[%15s %8s %" SCNu64 " %f %f %f %d %d %d %x ]",
+  sscanf(readbuffer, "[%15s %8s %" SCNu64 " %f %f %f %c %d %d %d %d %x ]",
     sd->model,
     sd->serial,
     &sd->uptime,
     &sd->voltage_v,
     &sd->current_ma,
     &sd->temp_celsius,
-    &sd->a,
-    &sd->b,
-    &sd->cs,
+    mode,
+    &sd->sda,
+    &sd->scl,
+    &sd->speed,
+    &sd->pullups,
     &sd->ccitt_crc
     );
+    sd->mode = mode[0];
 }
 
-void i2c_sel(I2CDriver *sd)
+void i2c_scan(I2CDriver *sd, uint8_t devices[128])
 {
-  writeToSerialPort(sd->port, "s", 1);
-  sd->cs = 0;
+  writeToSerialPort(sd->port, "d", 1);
+  (void)readFromSerialPort(sd->port, devices + 8, 112);
 }
 
-void i2c_unsel(I2CDriver *sd)
+int i2c_start(I2CDriver *sd, uint8_t dev, uint8_t op)
 {
-  writeToSerialPort(sd->port, "u", 1);
-  sd->cs = 1;
+  uint8_t start[2] = {'s', (dev << 1) | op};
+  writeToSerialPort(sd->port, start, sizeof(start));
+  return i2c_ack(sd);
 }
 
-void i2c_seta(I2CDriver *sd, char v)
+void i2c_stop(I2CDriver *sd)
 {
-  char cmd[2] = {'a', v};
-  writeToSerialPort(sd->port, cmd, 2);
-  sd->a = v;
+  writeToSerialPort(sd->port, "p", 1);
 }
 
-void i2c_setb(I2CDriver *sd, char v)
-{
-  char cmd[2] = {'b', v};
-  writeToSerialPort(sd->port, cmd, 2);
-  sd->b = v;
-}
-
-void i2c_write(I2CDriver *sd, const char bytes[], size_t nn)
+int i2c_write(I2CDriver *sd, const uint8_t bytes[], size_t nn)
 {
   size_t i;
+  int ack = 1;
+
   for (i = 0; i < nn; i += 64) {
     size_t len = ((nn - i) < 64) ? (nn - i) : 64;
-    char cmd[65] = {(char)(0xc0 + len - 1)};
+    uint8_t cmd[65] = {(uint8_t)(0xc0 + len - 1)};
     memcpy(cmd + 1, bytes + i, len);
     writeToSerialPort(sd->port, cmd, 1 + len);
+    ack = i2c_ack(sd);
   }
   crc_update(sd, bytes, nn);
 }
 
-void i2c_read(I2CDriver *sd, char bytes[], size_t nn)
+void i2c_read(I2CDriver *sd, uint8_t bytes[], size_t nn)
 {
   size_t i;
-  for (i = 0; i < nn; i += 64) {
-    size_t len = ((nn - i) < 64) ? (nn - i) : 64;
-    char cmd[65] = {(char)(0x80 + len - 1), 0};
-    writeToSerialPort(sd->port, cmd, 1 + len);
-    crc_update(sd, cmd + 1, len);
-    readFromSerialPort(sd->port, bytes + i, len);
-    crc_update(sd, bytes + i, len);
-  }
-}
 
-void i2c_writeread(I2CDriver *sd, char bytes[], size_t nn)
-{
-  size_t i;
   for (i = 0; i < nn; i += 64) {
     size_t len = ((nn - i) < 64) ? (nn - i) : 64;
-    char cmd[65] = {(char)(0x80 + len - 1)};
-    memcpy(cmd + 1, bytes + i, len);
-    writeToSerialPort(sd->port, cmd, 1 + len);
-    crc_update(sd, cmd + 1, len);
+    uint8_t cmd[1] = {(uint8_t)(0x80 + len - 1)};
+    writeToSerialPort(sd->port, cmd, 1);
     readFromSerialPort(sd->port, bytes + i, len);
     crc_update(sd, bytes + i, len);
   }
@@ -358,20 +351,41 @@ int i2c_commands(I2CDriver *sd, int argc, char *argv[])
 
     case 'i':
       i2c_getstatus(sd);
-      printf("uptime %" SCNu64"  %.3f V  %.0f mA  %.1f C\n", sd->uptime, sd->voltage_v, sd->current_ma, sd->temp_celsius);
+      printf("uptime %" SCNu64"  %.3f V  %.0f mA  %.1f C SDA=%d SCL=%d speed=%d kHz\n",
+        sd->uptime,
+        sd->voltage_v,
+        sd->current_ma,
+        sd->temp_celsius,
+        sd->sda,
+        sd->scl,
+        sd->speed
+        );
       break;
 
-    case 's':
-      i2c_sel(sd);
-      break;
-
-    case 'u':
-      i2c_unsel(sd);
-      break;
-
-    case 'w':
-    case 't':
+    case 'd':
       {
+        uint8_t devices[128];
+        int i;
+
+        i2c_scan(sd, devices);
+        printf("\n");
+        for (i = 8; i < 0x78; i++) {
+          if (devices[i] == '1')
+            printf("%02x  ", i);
+          else
+            printf("--  ");
+          if ((i % 8) == 7)
+            printf("\n");
+        }
+        printf("\n");
+      }
+      break;
+    
+    case 'w':
+      {
+        token = argv[++i];
+        unsigned int dev = strtol(token, NULL, 0);
+
         token = argv[++i];
         char bytes[8192], *endptr = token;
         size_t nn = 0;
@@ -385,6 +399,8 @@ int i2c_commands(I2CDriver *sd, int argc, char *argv[])
           }
           endptr++;
         }
+
+        i2c_start(sd, dev, 0);
         i2c_write(sd, bytes, nn);
       }
       break;
@@ -392,9 +408,16 @@ int i2c_commands(I2CDriver *sd, int argc, char *argv[])
     case 'r':
       {
         token = argv[++i];
+        unsigned int dev = strtol(token, NULL, 0);
+
+        token = argv[++i];
         size_t nn = strtol(token, NULL, 0);
         char bytes[8192];
+
+        i2c_start(sd, dev, 1);
         i2c_read(sd, bytes, nn);
+        i2c_stop(sd);
+
         size_t i;
         for (i = 0; i < nn; i++)
           printf("%s0x%02x", i ? "," : "", 0xff & bytes[i]);
@@ -402,16 +425,8 @@ int i2c_commands(I2CDriver *sd, int argc, char *argv[])
       }
       break;
 
-    case 'a':
-      token = argv[++i];
-      if (token != NULL)
-        i2c_seta(sd, token[0]);
-      break;
-
-    case 'b':
-      token = argv[++i];
-      if (token != NULL)
-        i2c_setb(sd, token[0]);
+    case 'p':
+      i2c_stop(sd);
       break;
 
     default:
@@ -420,13 +435,11 @@ int i2c_commands(I2CDriver *sd, int argc, char *argv[])
       fprintf(stderr, "\n");
       fprintf(stderr, "Commands are:");
       fprintf(stderr, "\n");
-      fprintf(stderr, "  i     display status information (uptime, voltage, current, temperature)\n");
-      fprintf(stderr, "  s     I2C select\n");
-      fprintf(stderr, "  u     I2C unselect\n");
-      fprintf(stderr, "  w     write bytes to I2C\n");
-      fprintf(stderr, "  r N   read N bytes from I2C\n");
-      fprintf(stderr, "  a 0/1 Set A line\n");
-      fprintf(stderr, "  b 0/1 Set B line\n");
+      fprintf(stderr, "  i              display status information (uptime, voltage, current, temperature)\n");
+      fprintf(stderr, "  d              device scan\n");
+      fprintf(stderr, "  w dev <bytes>  write bytes to I2C device dev\n");
+      fprintf(stderr, "  p              send a STOP\n");
+      fprintf(stderr, "  r dev N        read N bytes from I2C device dev, then STOP\n");
       fprintf(stderr, "\n");
 
       return 1;
