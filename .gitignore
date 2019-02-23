@@ -1,0 +1,5 @@
+__pycache__
+*.pyc
+/c/build/
+/c/bin/
+/c/obj/
