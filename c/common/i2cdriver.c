@@ -338,6 +338,11 @@ void i2c_read(I2CDriver *sd, uint8_t bytes[], size_t nn)
   }
 }
 
+void i2c_monitor(I2CDriver *sd, int enable)
+{
+  writeToSerialPort(sd->port, enable ? "m" : "@", 1);
+}
+
 int i2c_commands(I2CDriver *sd, int argc, char *argv[])
 {
   int i;
@@ -429,6 +434,17 @@ int i2c_commands(I2CDriver *sd, int argc, char *argv[])
       i2c_stop(sd);
       break;
 
+    case 'm':
+      {
+        char line[100];
+
+        i2c_monitor(sd, 1);
+        printf("[Hit return to exit monitor mode]\n");
+        fgets(line, sizeof(line) - 1, stdin);
+        i2c_monitor(sd, 0);
+      }
+      break;
+
     default:
     badcommand:
       fprintf(stderr, "Bad command '%s'\n", token);
@@ -440,6 +456,7 @@ int i2c_commands(I2CDriver *sd, int argc, char *argv[])
       fprintf(stderr, "  w dev <bytes>  write bytes to I2C device dev\n");
       fprintf(stderr, "  p              send a STOP\n");
       fprintf(stderr, "  r dev N        read N bytes from I2C device dev, then STOP\n");
+      fprintf(stderr, "  m              enter I2C bus monitor mode\n");
       fprintf(stderr, "\n");
 
       return 1;

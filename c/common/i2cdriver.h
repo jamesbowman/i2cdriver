@@ -34,6 +34,8 @@ int  i2c_write(I2CDriver *sd, const uint8_t bytes[], size_t nn);
 void i2c_read(I2CDriver *sd, uint8_t bytes[], size_t nn);
 void i2c_stop(I2CDriver *sd);
 
+void i2c_monitor(I2CDriver *sd, int enable);
+
 int i2c_commands(I2CDriver *sd, int argc, char *argv[]);
 
 #endif
