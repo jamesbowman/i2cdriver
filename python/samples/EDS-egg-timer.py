@@ -1,5 +1,19 @@
+"""
+Demo of a simple combination of parts from Electric Dollar Store:
+
+* POT - potentiometer
+* DIG2 - 2-digit display
+* BEEP - piezo beeper
+
+This demo simulates a kitchen egg-timer.
+Twisting the POT sets a countdown time in seconds,
+and after it's released the ticker starts counting.
+When it reaches "00" it flashes and beeps.
+
+https://electricdollarstore.com
+
+"""
 import sys
-import struct
 import time
 
 from i2cdriver import I2CDriver, EDS
@@ -31,7 +45,6 @@ def eggtimer(i2c):
             digits.brightness(255)
             t = v
         digits.dec(t)
-        digits.dp(0, ticking)
         if millis() > next and (t != 0):
             ticking = True
         if ticking and millis() > next:
