@@ -12,5 +12,6 @@ if __name__ == '__main__':
     d = EDS.Beep(i2)
 
     for note in range(55, 127):
+        print("MIDI note %d" % note)
         d.beep(100, note)
         time.sleep(.100)

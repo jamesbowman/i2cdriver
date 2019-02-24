@@ -92,7 +92,7 @@ class Beep:
     def beep(self, dur, note):
         """
         Play a note. 
-        dur is the duration in centi-seconds.
+        dur is the duration in milliseconds, 0-255.
         note is a MIDI note in the range 21-127 inclusive.
         """
         self.i2.regwr(self.a, dur, note)
@@ -119,10 +119,9 @@ class Remote:
 
         If there is no IR code in the queue, return None.
         """
-        while True:
-            r = self.i2.regrd(self.a, 0)
-            if r != 0:
-                return chr(r)
+        r = self.i2.regrd(self.a, 0)
+        if r != 0:
+            return chr(r)
 
     def raw(self):
         """
