@@ -12,5 +12,5 @@ fi
 cd ..
 python -c 'from i2cdriver import I2CDriver' 
 
-# cd c
-# make -f linux/Makefile
+cd c
+make -f linux/Makefile
