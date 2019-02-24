@@ -220,3 +220,21 @@ class Clock:
         self.i2.start(self.a, 1)
         print(list(self.i2.read(16)))
         self.i2.stop()
+
+class Magnet:
+    """ MAGNET is an ST LIS3MDL 3-axis magnetometer """
+    def __init__(self, i2, a = 0x1c):
+        self.i2 = i2
+        self.a = a
+        self.i2.regwr(self.a, 0x22, 0) # CTRL_REG3 operating mode 0: continuous conversion
+
+    def rd(self):
+        """ Read the measurement STATUS_REG and OUT_X,Y,Z """
+        return self.i2.regrd(self.a, 0x27, "<B3h")
+
+    def measurement(self):
+        """ Wait for a new field reading, return the (x,y,z) """
+        while True:
+            (status, x, y, z) = self.rd()
+            if status & 8:
+                return (x, y, z)
