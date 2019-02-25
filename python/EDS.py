@@ -238,3 +238,27 @@ class Magnet:
             (status, x, y, z) = self.rd()
             if status & 8:
                 return (x, y, z)
+
+class Accel:
+    """ ACCEL is a Richtek RT3000C 3-Axis Digital Accelerometer """
+
+    def __init__(self, i2, a = 0x19):
+        self.i2 = i2
+        self.a = a
+
+        print(bin(i2.regrd(self.a, 0xf)))
+        i2.regwr(self.a, 0x20, 0b01000111) # CTRL_REG1: 50 Hz, enable X,Y,Z
+        i2.regwr(self.a, 0x23, 0b00000000) # CTRL_REG4: High resolution mode
+
+    def measurement(self):
+        """ Wait for a new reading, return the (x,y,z) acceleration in g """
+
+        # Note that the RT3000A does not support multibyte
+        # reads. So must read the data one byte at a time.
+
+        while True:
+            STS_REG = self.i2.regrd(self.a, 0x27)
+            if STS_REG & 8:
+                regs = [self.i2.regrd(self.a, i) for i in range(0x28, 0x2e)]
+                xyz = struct.unpack("<3h", struct.pack("6B", *regs))
+                return tuple([c / 16384. for c in xyz])
