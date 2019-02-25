@@ -84,36 +84,28 @@ class Frame(wx.Frame):
         self.label_speed = wx.StaticText(self, label = "-", style = wx.ALIGN_RIGHT)
         self.label_uptime = wx.StaticText(self, label = "-", style = wx.ALIGN_RIGHT)
 
+        self.dynamic = [
+            self.label_voltage,
+            self.label_current,
+            self.label_temp,
+            self.label_speed,
+            self.label_uptime
+        ]
+
         self.Bind(EVT_PING, self.refresh)
 
-        self.ckCS = wx.CheckBox(self, label = "CS")
-        self.ckA = wx.CheckBox(self, label = "A")
-        self.ckB = wx.CheckBox(self, label = "B")
-        self.ckCS.Bind(wx.EVT_CHECKBOX, self.check_cs)
-        self.ckA.Bind(wx.EVT_CHECKBOX, self.check_a)
-        self.ckB.Bind(wx.EVT_CHECKBOX, self.check_b)
+        self.heat = {i:label("%02X" % i) for i in range(8, 112)}
+        [self.hot(i, False) for i in self.heat]
+        devgrid = wx.GridSizer(14, 8)
+        for i,l in self.heat.items():
+            devgrid.Add(l)
+        self.hot(0x44, True)
 
-        ps = self.GetFont().GetPointSize()
-        fmodern = wx.Font(ps, wx.MODERN, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL)
-        def logger():
-            r = wx.TextCtrl(self, style=wx.TE_READONLY | wx.TE_RIGHT | wx.TE_DONTWRAP)
-            r.SetBackgroundColour(wx.Colour(224, 224, 224))
-            r.SetFont(fmodern)
-            return r
-        self.txMISO = logger()
-        self.txMOSI = logger()
+        self.monitor = False
+        self.ckM = wx.CheckBox(self, label = "Monitor mode")
+        self.ckM.Bind(wx.EVT_CHECKBOX, self.check_m)
 
-        self.txVal = HexTextCtrl(self, size=wx.DefaultSize, style=0)
-        self.txVal.SetMaxLength(2)
-        self.txVal.SetFont(wx.Font(14 * ps // 10,
-                              wx.MODERN,
-                              wx.FONTSTYLE_NORMAL,
-                              wx.FONTWEIGHT_BOLD))
-        txButton = wx.Button(self, label = "Write")
-        txButton.Bind(wx.EVT_BUTTON, partial(self.transfer, self.txVal))
-        txButton.SetDefault()
-
-        self.allw = [self.ckCS, self.ckA, self.ckB, self.txVal, txButton, self.txMISO, self.txMOSI]
+        self.allw = [self.ckM]
         [w.Enable(False) for w in self.allw]
         self.devs = self.devices()
         cb = wx.ComboBox(self, choices = sorted(self.devs.keys()), style = wx.CB_READONLY)
@@ -142,13 +134,9 @@ class Frame(wx.Frame):
             )),
 
             label(""),
-            rpair(label("MISO"), self.txMISO),
-            rpair(label("MOSI"), self.txMOSI),
+            hcenter(devgrid),
             label(""),
-            hcenter(pair(self.ckCS, hbox([self.ckA, self.ckB]))),
-            label(""),
-            hcenter(pair(self.txVal, txButton)),
-            hcenter(pair(self.rxVal, rxButton)),
+            hcenter(self.ckM),
             label(""),
             ])
         self.SetSizerAndFit(vb)
@@ -187,7 +175,7 @@ class Frame(wx.Frame):
         self.refresh(None)
 
     def refresh(self, e):
-        if self.sd:
+        if self.sd and not self.monitor:
             self.sd.getstatus()
             self.label_serial.SetLabel(self.sd.serial)
             self.label_voltage.SetLabel("%.2f V" % self.sd.voltage)
@@ -201,28 +189,26 @@ class Frame(wx.Frame):
             ss = rem % 60;
             self.label_uptime.SetLabel("%d:%02d:%02d:%02d" % (days, hh, mm, ss))
 
+            devs = self.sd.scan(True)
+            for i,l in self.heat.items():
+                self.hot(i, i in devs)
+
     def choose_device(self, e):
         self.connect(self.devs[e.EventObject.GetValue()])
 
-    def check_cs(self, e):
-        if e.EventObject.GetValue():
-            self.sd.sel()
+    def check_m(self, e):
+        self.monitor = e.EventObject.GetValue()
+        self.sd.monitor(self.monitor)
+        [d.Enable(not self.monitor) for d in self.dynamic]
+        if self.monitor:
+            [self.hot(i, False) for i in self.heat]
+
+    def hot(self, i, s):
+        l = self.heat[i]
+        if s:
+            l.SetForegroundColour((0,0,0))
         else:
-            self.sd.unsel()
-
-    def check_a(self, e):
-        self.sd.seta(e.EventObject.GetValue())
-
-    def check_b(self, e):
-        self.sd.setb(e.EventObject.GetValue())
-
-    def transfer(self, htc, e):
-        if htc.GetValue():
-            txb = int(htc.GetValue(), 16)
-            rxb = struct.unpack("B", self.sd.writeread(struct.pack("B", txb)))[0]
-            self.txMOSI.AppendText(" %02X" % txb)
-            self.txMISO.AppendText(" %02X" % rxb)
-            htc.ChangeValue("")
+            l.SetForegroundColour((160,) * 3)
 
 if __name__ == '__main__':
     app = wx.App(0)
