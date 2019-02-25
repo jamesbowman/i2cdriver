@@ -5,16 +5,17 @@ Demo of a simple combination of parts from Electric Dollar Store:
 * DIG2 - 2-digit display
 * BEEP - piezo beeper
 
-This demo runs a take-a-ticket display for a counter.
-It shows 2-digit customer number, and each time '+' is
+This demo runs a take-a-ticket display for a store or deli counter.
+
+It shows 2-digit "now serving" number, and each time '+' is
 pressed on the remote it increments the counter and
 makes a beep, so the next customer can be served.
+Pressing '-' turns the number back one.
 
 https://electricdollarstore.com
 
 """
 import sys
-import time
 
 from i2cdriver import I2CDriver, EDS
 
