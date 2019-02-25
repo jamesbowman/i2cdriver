@@ -13,8 +13,6 @@ https://electricdollarstore.com
 
 """
 import sys
-import struct
-import time
 
 from i2cdriver import I2CDriver, EDS
 
@@ -23,8 +21,8 @@ if __name__ == '__main__':
 
     magnet = EDS.Magnet(i2)
     led = EDS.LED(i2)
-    led.rgb(0, 0, 0)
-    while 1:
+
+    while True:
         (x, y, z) = magnet.measurement()
         r = max(0, min(255, (x + 4000) // 32))
         g = max(0, min(255, (y + 4000) // 32))
