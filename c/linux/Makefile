@@ -1,4 +1,4 @@
-CFLAGS += -I common
+CFLAGS += -I common -Wall -Wpointer-sign # -Werror
 
 all: build/i2ccl
 
