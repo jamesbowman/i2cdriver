@@ -126,14 +126,15 @@ int openSerialPort(const char *portname)
     perror(portname);
     return -1;
   }
-
   tcgetattr(fd, &Settings);
-#if defined(__APPLE__) && !defined(B1000000)
-#define B1000000 1000000
-#endif
 
+#if defined(__APPLE__) && !defined(B1000000)
+  #include <IOKit/serial/ioss.h>
+#else
   cfsetispeed(&Settings, B1000000);
   cfsetospeed(&Settings, B1000000);
+#endif
+
 
   cfmakeraw(&Settings);
   Settings.c_cc[VMIN] = 1;
@@ -141,6 +142,11 @@ int openSerialPort(const char *portname)
     perror("Serial settings");
     return -1;
   }
+
+#if defined(__APPLE__) && !defined(B1000000)
+  speed_t speed = (speed_t)1000000;
+  ioctl(fd, IOSSIOSPEED, &speed);
+#endif
 
   return fd;
 }
