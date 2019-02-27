@@ -2,9 +2,10 @@ set -e
 
 rm -rf build/*
 make -f linux/Makefile
-build/i2ccl /dev/ttyUSB0 i
+# build/i2ccl /dev/ttyUSB0 i d
+# build/i2ccl /dev/ttyUSB0 w 0x48 3 r 0x48 2
 
-# make -f win32/Makefile
+make -f win32/Makefile
 # cp build/spicl.exe /data/win10/
 # 
 # rm -f win32gui/obj/* win32gui/bin/Win32App.exe

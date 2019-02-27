@@ -3,7 +3,9 @@
 #include <assert.h>
 #include <memory.h>
 #include <fcntl.h>
+#if !defined(WIN32)
 #include <sys/ioctl.h>
+#endif
 #include <unistd.h>
 #include <errno.h>
 #define __STDC_FORMAT_MACROS
