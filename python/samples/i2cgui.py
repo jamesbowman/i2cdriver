@@ -77,6 +77,8 @@ class Frame(wx.Frame):
 
         wx.Frame.__init__(self, None, -1, "I2CDriver")
 
+        self.bold = self.GetFont().Bold()
+
         self.label_serial = wx.StaticText(self, label = "-", style = wx.ALIGN_RIGHT)
         self.label_voltage = wx.StaticText(self, label = "-", style = wx.ALIGN_RIGHT)
         self.label_current = wx.StaticText(self, label = "-", style = wx.ALIGN_RIGHT)
@@ -94,7 +96,11 @@ class Frame(wx.Frame):
 
         self.Bind(EVT_PING, self.refresh)
 
-        self.heat = {i:label("%02X" % i) for i in range(8, 112)}
+        def addrbutton(s):
+            r = wx.RadioButton(self, label = s)
+            r.Bind(wx.EVT_RADIOBUTTON, self.choose_addr)
+            return r
+        self.heat = {i:addrbutton("%02X" % i) for i in range(8, 112)}
         [self.hot(i, False) for i in self.heat]
         devgrid = wx.GridSizer(8, 14, 8)
         for i,l in self.heat.items():
@@ -105,14 +111,32 @@ class Frame(wx.Frame):
         self.ckM = wx.CheckBox(self, label = "Monitor mode")
         self.ckM.Bind(wx.EVT_CHECKBOX, self.check_m)
 
+        ps = self.GetFont().GetPointSize()
+
+        self.txVal = HexTextCtrl(self, size=wx.DefaultSize, style=0)
+        self.txVal.SetMaxLength(2)
+        self.txVal.SetFont(wx.Font(14 * ps // 10,
+                              wx.MODERN,
+                              wx.FONTSTYLE_NORMAL,
+                              wx.FONTWEIGHT_BOLD))
+
+        # txButton = wx.Button(self, label = "device")
+        # txButton.Bind(wx.EVT_BUTTON, partial(self.transfer, self.txVal))
+        # txButton.SetDefault()
+
         self.allw = [self.ckM]
         [w.Enable(False) for w in self.allw]
         self.devs = self.devices()
         cb = wx.ComboBox(self, choices = sorted(self.devs.keys()), style = wx.CB_READONLY)
         cb.Bind(wx.EVT_COMBOBOX, self.choose_device)
+
+        self.addr = None
+
         vb = vbox([
             label(""),
             hcenter(cb),
+            label(""),
+            hcenter(self.ckM),
             label(""),
             hcenter(pair(
                 vbox([
@@ -136,8 +160,6 @@ class Frame(wx.Frame):
             label(""),
             hcenter(devgrid),
             label(""),
-            hcenter(self.ckM),
-            label(""),
             ])
         self.SetSizerAndFit(vb)
         self.SetAutoLayout(True)
@@ -150,6 +172,15 @@ class Frame(wx.Frame):
         t = threading.Thread(target=ping_thr, args=(self, ))
         t.setDaemon(True)
         t.start()
+
+    def transfer(self, htc, e):
+        if htc.GetValue():
+            print(htc.GetValue())
+            # txb = int(htc.GetValue(), 16)
+            # rxb = struct.unpack("B", self.sd.writeread(struct.pack("B", txb)))[0]
+            # self.txMOSI.AppendText(" %02X" % txb)
+            # self.txMISO.AppendText(" %02X" % rxb)
+            # htc.ChangeValue("")
 
     def devices(self):
         if sys.platform == 'darwin':
@@ -196,6 +227,13 @@ class Frame(wx.Frame):
     def choose_device(self, e):
         self.connect(self.devs[e.EventObject.GetValue()])
 
+    def choose_addr(self, e):
+        o = e.EventObject
+        v = o.GetValue()
+        if v:
+            self.addr = int(o.GetLabel(), 16)
+            print('i2c address %02x' % self.addr)
+
     def check_m(self, e):
         self.monitor = e.EventObject.GetValue()
         self.sd.monitor(self.monitor)
@@ -207,8 +245,11 @@ class Frame(wx.Frame):
         l = self.heat[i]
         if s:
             l.SetForegroundColour((0,0,0))
+            l.SetFont(self.bold)
         else:
             l.SetForegroundColour((160,) * 3)
+            l.SetFont(self.GetFont())
+        l.Enable(s)
 
 if __name__ == '__main__':
     app = wx.App(0)
