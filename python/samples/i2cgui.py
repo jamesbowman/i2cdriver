@@ -26,7 +26,7 @@ class HexTextCtrl(wx.TextCtrl):
         event.Skip()
         selection = self.GetSelection()
         value = self.GetValue().upper()
-        hex = "0123456789ABCDEF"
+        hex = " 0123456789ABCDEF"
         value = "".join([c for c in value if c in hex])
         self.ChangeValue(value)
         self.SetSelection(*selection)
@@ -57,6 +57,11 @@ class Frame(wx.Frame):
 
         def label(s):
             return wx.StaticText(self, label = s)
+
+        def button(s, f):
+            r = wx.Button(self, label = s)
+            r.Bind(wx.EVT_BUTTON, f)
+            return r
 
         def hbox(items):
             r = wx.BoxSizer(wx.HORIZONTAL)
@@ -101,11 +106,9 @@ class Frame(wx.Frame):
             r.Bind(wx.EVT_RADIOBUTTON, self.choose_addr)
             return r
         self.heat = {i:addrbutton("%02X" % i) for i in range(8, 112)}
-        [self.hot(i, False) for i in self.heat]
         devgrid = wx.GridSizer(8, 14, 8)
-        for i,l in self.heat.items():
+        for i,l in sorted(self.heat.items()):
             devgrid.Add(l)
-        self.hot(0x44, True)
 
         self.monitor = False
         self.ckM = wx.CheckBox(self, label = "Monitor mode")
@@ -114,15 +117,22 @@ class Frame(wx.Frame):
         ps = self.GetFont().GetPointSize()
 
         self.txVal = HexTextCtrl(self, size=wx.DefaultSize, style=0)
-        self.txVal.SetMaxLength(2)
-        self.txVal.SetFont(wx.Font(14 * ps // 10,
-                              wx.MODERN,
-                              wx.FONTSTYLE_NORMAL,
-                              wx.FONTWEIGHT_BOLD))
 
-        # txButton = wx.Button(self, label = "device")
-        # txButton.Bind(wx.EVT_BUTTON, partial(self.transfer, self.txVal))
-        # txButton.SetDefault()
+        self.rxVal = HexTextCtrl(self, size=wx.DefaultSize, style=wx.TE_READONLY)
+
+        # self.txVal.SetFont(wx.Font(14 * ps // 10, wx.MODERN, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD))
+
+        txButton = wx.Button(self, label = "write")
+        txButton.Bind(wx.EVT_BUTTON, partial(self.write, self.txVal))
+
+        self.rxCount = wx.SpinCtrl(self, min = 1)
+        rxButton = wx.Button(self, label = "read")
+        rxButton.Bind(wx.EVT_BUTTON, self.read)
+
+        self.dev_widgets = [txButton, rxButton]
+
+        self.stop_button = button("stop", self.stop)
+        self.stop_button.Enable(False)
 
         self.allw = [self.ckM]
         [w.Enable(False) for w in self.allw]
@@ -130,7 +140,16 @@ class Frame(wx.Frame):
         cb = wx.ComboBox(self, choices = sorted(self.devs.keys()), style = wx.CB_READONLY)
         cb.Bind(wx.EVT_COMBOBOX, self.choose_device)
 
-        self.addr = None
+        self.no_addr()
+        [self.hot(i, False) for i in self.heat]
+        self.started = False
+
+        self.dev_widgets = vbox([
+            hcenter(pair(self.txVal, txButton)),
+            hcenter(pair(self.rxVal, hbox([self.rxCount, rxButton]))),
+            label(""),
+            hcenter(self.stop_button),
+        ])
 
         vb = vbox([
             label(""),
@@ -160,7 +179,9 @@ class Frame(wx.Frame):
             label(""),
             hcenter(devgrid),
             label(""),
-            ])
+            self.dev_widgets,
+            label(""),
+        ])
         self.SetSizerAndFit(vb)
         self.SetAutoLayout(True)
 
@@ -173,14 +194,31 @@ class Frame(wx.Frame):
         t.setDaemon(True)
         t.start()
 
-    def transfer(self, htc, e):
-        if htc.GetValue():
-            print(htc.GetValue())
-            # txb = int(htc.GetValue(), 16)
-            # rxb = struct.unpack("B", self.sd.writeread(struct.pack("B", txb)))[0]
-            # self.txMOSI.AppendText(" %02X" % txb)
-            # self.txMISO.AppendText(" %02X" % rxb)
-            # htc.ChangeValue("")
+    def start(self, rw):
+        self.sd.start(self.addr, rw)
+        self.started = True
+        self.stop_button.Enable(True)
+
+    def stop(self, e = None):
+        self.sd.stop()
+        self.started = False
+        self.stop_button.Enable(False)
+
+    def write(self, htc, e):
+        if (self.addr is not None) and htc.GetValue():
+            vv = [int(c,16) for c in htc.GetValue().split()]
+            self.start(0)
+            self.sd.write(vv)
+
+    def read(self, e):
+        n = int(self.rxCount.GetValue())
+        if self.addr is not None:
+            print("read", n)
+            self.start(1)
+            r = self.sd.read(n)
+            bb = struct.unpack("B"*n, r)
+            self.rxVal.SetValue(" ".join(["%02X" % b for b in bb]))
+            self.stop()
 
     def devices(self):
         if sys.platform == 'darwin':
@@ -216,23 +254,28 @@ class Frame(wx.Frame):
             days = self.sd.uptime // (24 * 3600)
             rem = self.sd.uptime % (24 * 3600)
             hh = rem // 3600
-            mm = (rem / 60) % 60
+            mm = (rem // 60) % 60
             ss = rem % 60;
             self.label_uptime.SetLabel("%d:%02d:%02d:%02d" % (days, hh, mm, ss))
 
-            devs = self.sd.scan(True)
-            for i,l in self.heat.items():
-                self.hot(i, i in devs)
+            if not self.started:
+                devs = self.sd.scan(True)
+                for i,l in self.heat.items():
+                    self.hot(i, i in devs)
 
     def choose_device(self, e):
         self.connect(self.devs[e.EventObject.GetValue()])
+
+    def no_addr(self):
+        self.addr = None
+        [w.Enable(False) for w in self.dev_widgets]
 
     def choose_addr(self, e):
         o = e.EventObject
         v = o.GetValue()
         if v:
             self.addr = int(o.GetLabel(), 16)
-            print('i2c address %02x' % self.addr)
+            [w.Enable(True) for w in self.dev_widgets]
 
     def check_m(self, e):
         self.monitor = e.EventObject.GetValue()
@@ -249,6 +292,8 @@ class Frame(wx.Frame):
         else:
             l.SetForegroundColour((160,) * 3)
             l.SetFont(self.GetFont())
+            if i == self.addr:
+                self.no_addr()
         l.Enable(s)
 
 if __name__ == '__main__':
