@@ -96,7 +96,7 @@ class Frame(wx.Frame):
 
         self.heat = {i:label("%02X" % i) for i in range(8, 112)}
         [self.hot(i, False) for i in self.heat]
-        devgrid = wx.GridSizer(14, 8)
+        devgrid = wx.GridSizer(8, 14, 8)
         for i,l in self.heat.items():
             devgrid.Add(l)
         self.hot(0x44, True)
@@ -154,7 +154,7 @@ class Frame(wx.Frame):
     def devices(self):
         if sys.platform == 'darwin':
             devdir = "/dev/"
-            pattern = "^tty.usbserial-(........)"
+            pattern = "^cu.usbserial-(.*)"
         else:
             devdir = "/dev/serial/by-id/"
             pattern = "^usb-FTDI_FT230X_Basic_UART_(........)-"
