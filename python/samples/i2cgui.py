@@ -114,13 +114,9 @@ class Frame(wx.Frame):
         self.ckM = wx.ToggleButton(self, label = "Monitor mode")
         self.ckM.Bind(wx.EVT_TOGGLEBUTTON, self.check_m)
 
-        ps = self.GetFont().GetPointSize()
-
         self.txVal = HexTextCtrl(self, size=wx.DefaultSize, style=0)
 
         self.rxVal = HexTextCtrl(self, size=wx.DefaultSize, style=wx.TE_READONLY)
-
-        # self.txVal.SetFont(wx.Font(14 * ps // 10, wx.MODERN, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD))
 
         txButton = wx.Button(self, label = "write")
         txButton.Bind(wx.EVT_BUTTON, partial(self.write, self.txVal))
@@ -131,10 +127,12 @@ class Frame(wx.Frame):
 
         self.dev_widgets = [txButton, rxButton]
 
+        self.reset_button = button("i2c reset", self.reset)
+
         self.stop_button = button("stop", self.stop)
         self.stop_button.Enable(False)
 
-        self.allw = [self.ckM]
+        self.allw = [self.ckM, self.reset_button]
         [w.Enable(False) for w in self.allw]
         self.devs = self.devices()
         cb = wx.ComboBox(self, choices = sorted(self.devs.keys()), style = wx.CB_READONLY)
@@ -156,6 +154,7 @@ class Frame(wx.Frame):
             hcenter(cb),
             label(""),
             hcenter(self.ckM),
+            hcenter(self.reset_button),
             label(""),
             hcenter(pair(
                 vbox([
@@ -203,6 +202,10 @@ class Frame(wx.Frame):
         self.sd.stop()
         self.started = False
         self.stop_button.Enable(False)
+
+    def reset(self, e = None):
+        self.sd.reset()
+        self.started = False
 
     def write(self, htc, e):
         if (self.addr is not None) and htc.GetValue():
