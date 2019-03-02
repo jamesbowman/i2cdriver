@@ -111,8 +111,8 @@ class Frame(wx.Frame):
             devgrid.Add(l)
 
         self.monitor = False
-        self.ckM = wx.CheckBox(self, label = "Monitor mode")
-        self.ckM.Bind(wx.EVT_CHECKBOX, self.check_m)
+        self.ckM = wx.ToggleButton(self, label = "Monitor mode")
+        self.ckM.Bind(wx.EVT_TOGGLEBUTTON, self.check_m)
 
         ps = self.GetFont().GetPointSize()
 
