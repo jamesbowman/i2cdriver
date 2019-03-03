@@ -76,12 +76,12 @@ class I2CDriver:
 
     if PYTHON2:
         def __ser_w(self, s):
-            if isinstance(s, list):
+            if isinstance(s, list) or isinstance(s, tuple):
                 s = "".join([chr(c) for c in s])
             self.ser.write(s)
     else:
         def __ser_w(self, s):
-            if isinstance(s, list):
+            if isinstance(s, list) or isinstance(s, tuple):
                 s = bytes(s)
             self.ser.write(s)
 

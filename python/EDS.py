@@ -46,12 +46,10 @@ class LED:
         """
         if t == 0:
             self.i2.start(self.a, 0)
-            self.i2.write(bytes((0, r, g, b)))
-            self.i2.stop()
+            self.i2.regwr(self.a, 0, r, g, b)
         else:
             self.i2.start(self.a, 0)
-            self.i2.write(bytes((1, r, g, b, t)))
-            self.i2.stop()
+            self.i2.regwr(self.a, 1, r, g, b, t)
         
     def hex(self, hhh, t = 0):
         """
