@@ -88,7 +88,10 @@ class Frame(wx.Frame):
         self.label_voltage = wx.StaticText(self, label = "-", style = wx.ALIGN_RIGHT)
         self.label_current = wx.StaticText(self, label = "-", style = wx.ALIGN_RIGHT)
         self.label_temp = wx.StaticText(self, label = "-", style = wx.ALIGN_RIGHT)
-        self.label_speed = wx.StaticText(self, label = "-", style = wx.ALIGN_RIGHT)
+        self.label_speed = wx.Choice(self, choices = ["100", "400"])
+        self.label_speed.Bind(wx.EVT_CHOICE, self.set_speed)
+        self.label_sda = wx.StaticText(self, label = "-", style = wx.ALIGN_RIGHT)
+        self.label_scl = wx.StaticText(self, label = "-", style = wx.ALIGN_RIGHT)
         self.label_uptime = wx.StaticText(self, label = "-", style = wx.ALIGN_RIGHT)
 
         self.dynamic = [
@@ -96,6 +99,8 @@ class Frame(wx.Frame):
             self.label_current,
             self.label_temp,
             self.label_speed,
+            self.label_sda,
+            self.label_scl,
             self.label_uptime
         ]
 
@@ -142,11 +147,15 @@ class Frame(wx.Frame):
         [self.hot(i, False) for i in self.heat]
         self.started = False
 
-        self.dev_widgets = vbox([
-            hcenter(pair(self.txVal, txButton)),
-            hcenter(pair(self.rxVal, hbox([self.rxCount, rxButton]))),
-            label(""),
-            hcenter(self.stop_button),
+        info = vbox([
+        pair(label("Serial"),   self.label_serial),
+        pair(label("Voltage"),  self.label_voltage),
+        pair(label("Current"),  self.label_current),
+        pair(label("Temp."),    self.label_temp),
+        pair(label("SDA"),      self.label_sda),
+        pair(label("SCL"),      self.label_scl),
+        pair(label("Running"),  self.label_uptime),
+        pair(label("Speed"),    self.label_speed),
         ])
 
         vb = vbox([
@@ -156,29 +165,38 @@ class Frame(wx.Frame):
             hcenter(self.ckM),
             hcenter(self.reset_button),
             label(""),
-            hcenter(pair(
-                vbox([
-                    label("Serial"),
-                    label("Voltage"),
-                    label("Current"),
-                    label("Temp."),
-                    label("Speed"),
-                    label("Running"),
-                ]),
-                vbox([
-                    self.label_serial,
-                    self.label_voltage,
-                    self.label_current,
-                    self.label_temp,
-                    self.label_speed,
-                    self.label_uptime,
-                ])
-            )),
+            hcenter(info),
+            # hcenter(pair(
+            #     vbox([
+            #         label("Serial"),
+            #         label("Voltage"),
+            #         label("Current"),
+            #         label("Temp."),
+            #         label("Speed"),
+            #         label("SDA"),
+            #         label("SCL"),
+            #         label("Running"),
+            #     ]),
+            #     vbox([
+            #         self.label_serial,
+            #         self.label_voltage,
+            #         self.label_current,
+            #         self.label_temp,
+            #         self.label_speed,
+            #         self.label_sda,
+            #         self.label_scl,
+            #         self.label_uptime,
+            #     ])
+            # )),
 
             label(""),
             hcenter(devgrid),
             label(""),
-            self.dev_widgets,
+            hcenter(pair(self.txVal, txButton)),
+            hcenter(pair(self.rxVal, hbox([self.rxCount, rxButton]))),
+            label(""),
+            hcenter(self.stop_button),
+
             label(""),
         ])
         self.SetSizerAndFit(vb)
@@ -248,12 +266,16 @@ class Frame(wx.Frame):
 
     def refresh(self, e):
         if self.sd and not self.monitor:
+            lowhigh = ["LOW", "HIGH"]
             self.sd.getstatus()
             self.label_serial.SetLabel(self.sd.serial)
             self.label_voltage.SetLabel("%.2f V" % self.sd.voltage)
             self.label_current.SetLabel("%d mA" % self.sd.current)
             self.label_temp.SetLabel("%.1f C" % self.sd.temp)
-            self.label_speed.SetLabel("%d kHz" % self.sd.speed)
+            self.label_speed.SetSelection({100:0, 400:1}[self.sd.speed])
+
+            self.label_sda.SetLabel(lowhigh[self.sd.sda])
+            self.label_scl.SetLabel(lowhigh[self.sd.scl])
             days = self.sd.uptime // (24 * 3600)
             rem = self.sd.uptime % (24 * 3600)
             hh = rem // 3600
@@ -286,6 +308,12 @@ class Frame(wx.Frame):
         [d.Enable(not self.monitor) for d in self.dynamic]
         if self.monitor:
             [self.hot(i, False) for i in self.heat]
+
+    def set_speed(self, e):
+        w = e.EventObject
+        s = int(w.GetString(w.GetCurrentSelection()))
+        print(s)
+        self.sd.setspeed(s)
 
     def hot(self, i, s):
         l = self.heat[i]
