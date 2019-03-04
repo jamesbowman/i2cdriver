@@ -236,7 +236,6 @@ class Frame(wx.Frame):
     def read(self, e):
         n = int(self.rxCount.GetValue())
         if self.addr is not None:
-            print("read", n)
             self.start(1)
             r = self.sd.read(n)
             bb = struct.unpack("B"*n, r)
