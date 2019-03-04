@@ -4,13 +4,11 @@ import time
 import struct
 from collections import OrderedDict
 
-__version__ = '0.0.2'
+__version__ = '0.0.3'
 
 PYTHON2 = (sys.version_info < (3, 0))
 
-from lm75b import *
 import EDS
-import bargraph
 
 class I2CTimeout(Exception):
     pass
