@@ -6,6 +6,8 @@ import re
 import threading
 from functools import partial
 
+import serial.tools.list_ports as slp
+
 import wx
 import wx.lib.newevent as NE
 
@@ -241,7 +243,9 @@ class Frame(wx.Frame):
             self.stop()
 
     def devices(self):
-        if sys.platform == 'darwin':
+        if sys.platform in ('win32', 'cygwin'):
+            return {pi.device: pi.device for pi in slp.comports()}
+        elif sys.platform == 'darwin':
             devdir = "/dev/"
             pattern = "^cu.usbserial-(.*)"
         else:
@@ -311,7 +315,6 @@ class Frame(wx.Frame):
     def set_speed(self, e):
         w = e.EventObject
         s = int(w.GetString(w.GetCurrentSelection()))
-        print(s)
         self.sd.setspeed(s)
 
     def hot(self, i, s):

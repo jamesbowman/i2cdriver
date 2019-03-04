@@ -19,9 +19,6 @@ setup(name='i2cdriver',
       install_requires=['pyserial'],
       py_modules = [
         'i2cdriver',
-        'lm75b',
         'EDS',
-        'ht16k33',
-        'bargraph',
       ],
       )

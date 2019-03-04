@@ -4,13 +4,11 @@ import time
 import struct
 from collections import OrderedDict
 
-__version__ = '0.0.1'
+__version__ = '0.0.3'
 
 PYTHON2 = (sys.version_info < (3, 0))
 
-from lm75b import *
 import EDS
-import bargraph
 
 class I2CTimeout(Exception):
     pass
@@ -76,12 +74,12 @@ class I2CDriver:
 
     if PYTHON2:
         def __ser_w(self, s):
-            if isinstance(s, list):
+            if isinstance(s, list) or isinstance(s, tuple):
                 s = "".join([chr(c) for c in s])
             self.ser.write(s)
     else:
         def __ser_w(self, s):
-            if isinstance(s, list):
+            if isinstance(s, list) or isinstance(s, tuple):
                 s = bytes(s)
             self.ser.write(s)
 
