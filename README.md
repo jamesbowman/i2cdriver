@@ -17,3 +17,29 @@ and there are included drivers for
 
 Full documentation is at
 [i2cdriver.com](http://i2cdriver.com).
+
+How to release
+--------------
+
+To release Python:
+
+  rm -rf dist/*
+  python setup.py dist
+  twine upload/dist/*
+
+To build the Windows installer:
+
+On Linux cross-compile ``i2ccl``:
+  
+    cd c
+    make -f win32/Makefile
+
+On Windows build the GUI exeutable:
+
+    cd python\samples
+    pyinstaller --onefile --windowed --icon=../../images/i2cdriver.ico i2cgui.py
+
+Then build the installer with NSIS:
+
+    cd nsis
+    go.bat

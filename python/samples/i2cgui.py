@@ -244,7 +244,7 @@ class Frame(wx.Frame):
             self.stop()
 
     def devices(self):
-        if sys.platform == 'win32':
+        if sys.platform in ('win32', 'cygwin'):
             return {pi.device: pi.device for pi in slp.comports()}
         elif sys.platform == 'darwin':
             devdir = "/dev/"
