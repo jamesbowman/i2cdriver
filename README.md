@@ -5,8 +5,9 @@
 I2CDriver is a tool for controlling any I2C device from your PC's USB port,
 and can also monitor and capture I2C traffic.
 It connects as a standard USB serial device, so there are no drivers to install.
-The serial protocol is [very simple](/protocol.md),
-and there are included drivers for
+On the main site
+[i2cdriver.com](https://i2cdriver.com),
+there are drivers for
 
 * Windows/Mac/Linux GUI
 * Windows/Mac/Linux command-line
