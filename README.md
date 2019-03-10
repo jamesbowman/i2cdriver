@@ -24,11 +24,12 @@ For developers: How to make a release
 
 To release Python:
 
-  rm -rf dist/*
-  python setup.py dist
-  twine upload/dist/*
+    rm -rf dist/*
+    python setup.py sdist
+    twine upload dist/*
 
-To build the Windows installer:
+To build the Windows installer, you first need to build the two executables
+``i2ccl.exe`` and ``i2cgui.exe`` then use an NSIS script to create the installer.
 
 On Linux cross-compile ``i2ccl``:
   
