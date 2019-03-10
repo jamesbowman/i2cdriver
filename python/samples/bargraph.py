@@ -1,24 +1,17 @@
+"""
+Example for Bi-Color (Red/Green) 24-Bar Bargraph, based on HT16K33.
+Available from Adafruit.
+"""
+
 import sys
-import serial
 import time
-import struct
 import random
+
+from i2cdriver import I2CDriver
 
 from ht16k33 import HT16K33
 
 class bargraph(HT16K33):
-    def image(self, bb):
-        def swiz(b):
-            bs = [str((b >> n) & 1) for n in range(8)]
-            return int(bs[7] + bs[0] + bs[1] + bs[2] + bs[3] + bs[4] + bs[5] + bs[6], 2)
-        bb = [swiz(b) for b in bb]
-        self.load([b for s in zip(bb,bb) for b in s])
-
-    def char(self, c):
-        n = ord(c)
-        ch = font[n * 8:n * 8 + 8]
-        self.image(ch)
-
     def set(self, pix):
         rr = pix
         def paint(r, i):
@@ -33,3 +26,12 @@ class bargraph(HT16K33):
         [paint(red, i) for i in range(24) if (pix[i] & 1)]
         [paint(grn, i) for i in range(24) if (pix[i] & 2)]
         self.load([red[0], grn[0], red[1], grn[1], red[2], grn[2]])
+
+if __name__ == '__main__':
+    i2 = I2CDriver(sys.argv[1])
+
+    d0 = bargraph(i2)
+
+    for i in range(60):
+        d0.set([random.choice((0,1,2,3)) for i in range(24)])
+        time.sleep(.08)
