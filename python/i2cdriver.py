@@ -4,7 +4,7 @@ import time
 import struct
 from collections import OrderedDict
 
-__version__ = '0.0.3'
+__version__ = '0.0.4'
 
 PYTHON2 = (sys.version_info < (3, 0))
 

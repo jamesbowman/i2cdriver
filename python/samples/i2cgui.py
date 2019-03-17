@@ -85,6 +85,10 @@ class Frame(wx.Frame):
         wx.Frame.__init__(self, None, -1, "I2CDriver")
 
         self.bold = self.GetFont().Bold()
+        self.addrfonts = [
+            self.GetFont(),
+            self.bold
+        ]
 
         self.label_serial = wx.StaticText(self, label = "-", style = wx.ALIGN_RIGHT)
         self.label_voltage = wx.StaticText(self, label = "-", style = wx.ALIGN_RIGHT)
@@ -113,7 +117,7 @@ class Frame(wx.Frame):
             r.Bind(wx.EVT_RADIOBUTTON, self.choose_addr)
             return r
         self.heat = {i:addrbutton("%02X" % i) for i in range(8, 112)}
-        devgrid = wx.GridSizer(8, 14, 8)
+        devgrid = wx.GridSizer(8, wx.Size(4, 6))
         for i,l in sorted(self.heat.items()):
             devgrid.Add(l)
 
@@ -321,10 +325,10 @@ class Frame(wx.Frame):
         l = self.heat[i]
         if s:
             l.SetForegroundColour((0,0,0))
-            l.SetFont(self.bold)
+            l.SetFont(self.addrfonts[1])
         else:
             l.SetForegroundColour((160,) * 3)
-            l.SetFont(self.GetFont())
+            l.SetFont(self.addrfonts[0])
             if i == self.addr:
                 self.no_addr()
         l.Enable(s)
