@@ -208,12 +208,17 @@ class Frame(wx.Frame):
         self.SetSizerAndFit(vb)
         self.SetAutoLayout(True)
 
-        if len(self.devs) > 0:
+        d1 = None
+        while (d1 is None) and (len(self.devs) > 0):
             if preferred in self.devs:
                 d1 = preferred
             else:
                 d1 = min(self.devs)
-            self.connect(self.devs[d1])
+            try:
+                self.connect(self.devs[d1])
+            except serial.SerialException:
+                del self.devs[d1]
+                d1 = None
             cb.SetValue(d1)
 
         t = threading.Thread(target=ping_thr, args=(self, ))
@@ -338,6 +343,13 @@ class Frame(wx.Frame):
 
 if __name__ == '__main__':
     app = wx.App(0)
-    f = Frame(*sys.argv[1:])
-    f.Show(True)
-    app.MainLoop()
+    try:
+        f = Frame(*sys.argv[1:])
+        f.Show(True)
+        app.MainLoop()
+    except:
+        import sys, traceback
+        xc = traceback.format_exception(*sys.exc_info())
+        dlg = wx.MessageDialog(None, "".join(xc), "i2cgui Error Trap", wx.OK | wx.ICON_WARNING)
+        dlg.ShowModal()
+        dlg.Destroy()
