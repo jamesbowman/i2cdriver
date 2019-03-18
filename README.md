@@ -36,7 +36,13 @@ On Linux cross-compile ``i2ccl``:
     cd c
     make -f win32/Makefile
 
-On Windows build the GUI executable using ``pyinstaller``:
+On Windows first make sure that you can run the GUI on the command-line, e.g.
+
+    python python\samples\i2cgui.py
+
+(You may need to install i2cdriver, wxPython and pySerial).
+
+Then build the GUI executable using ``pyinstaller``:
 
     cd python\samples
     pyinstaller --onefile --windowed --icon=../../images/i2cdriver.ico i2cgui.py
