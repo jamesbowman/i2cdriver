@@ -34,7 +34,7 @@ class HexTextCtrl(wx.TextCtrl):
         self.SetSelection(*selection)
 
 class Frame(wx.Frame):
-    def __init__(self):
+    def __init__(self, preferred = None):
 
         self.sd = None
 
@@ -209,7 +209,10 @@ class Frame(wx.Frame):
         self.SetAutoLayout(True)
 
         if len(self.devs) > 0:
-            d1 = min(self.devs)
+            if preferred in self.devs:
+                d1 = preferred
+            else:
+                d1 = min(self.devs)
             self.connect(self.devs[d1])
             cb.SetValue(d1)
 
@@ -335,6 +338,6 @@ class Frame(wx.Frame):
 
 if __name__ == '__main__':
     app = wx.App(0)
-    f = Frame()
+    f = Frame(*sys.argv[1:])
     f.Show(True)
     app.MainLoop()
