@@ -7,11 +7,12 @@ import threading
 from functools import partial
 
 import serial.tools.list_ports as slp
+import serial
 
 import wx
 import wx.lib.newevent as NE
 
-from i2cdriver import I2CDriver
+import i2cdriver
 
 PingEvent, EVT_PING = NE.NewEvent()
 
@@ -216,9 +217,11 @@ class Frame(wx.Frame):
                 d1 = min(self.devs)
             try:
                 self.connect(self.devs[d1])
-            except serial.SerialException:
+            except:
                 del self.devs[d1]
                 d1 = None
+        cb.Set(sorted(self.devs.keys()))
+        if d1 is not None:
             cb.SetValue(d1)
 
         t = threading.Thread(target=ping_thr, args=(self, ))
@@ -275,7 +278,7 @@ class Frame(wx.Frame):
         return dict([d for d in seldev if d])
 
     def connect(self, dev):
-        self.sd = I2CDriver(dev)
+        self.sd = i2cdriver.I2CDriver(dev)
         [w.Enable(True) for w in self.allw]
         self.refresh(None)
 
@@ -350,6 +353,6 @@ if __name__ == '__main__':
     except:
         import sys, traceback
         xc = traceback.format_exception(*sys.exc_info())
-        dlg = wx.MessageDialog(None, "".join(xc), "i2cgui Error Trap", wx.OK | wx.ICON_WARNING)
+        dlg = wx.MessageDialog(None, "".join(xc), "i2cgui Error Trap (%s)" % i2cdriver.__version__, wx.OK | wx.ICON_WARNING)
         dlg.ShowModal()
         dlg.Destroy()
