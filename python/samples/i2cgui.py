@@ -117,7 +117,7 @@ class Frame(wx.Frame):
             r = wx.RadioButton(self, label = s)
             r.Bind(wx.EVT_RADIOBUTTON, self.choose_addr)
             return r
-        self.heat = {i:addrbutton("%02X" % i) for i in range(8, 112)}
+        self.heat = {i:addrbutton("%02X" % i) for i in range(0x08, 0x78)}
         devgrid = wx.GridSizer(8, wx.Size(4, 6))
         for i,l in sorted(self.heat.items()):
             devgrid.Add(l)
