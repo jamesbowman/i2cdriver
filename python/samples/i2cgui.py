@@ -151,6 +151,7 @@ class Frame(wx.Frame):
         cb.Bind(wx.EVT_COMBOBOX, self.choose_device)
 
         self.no_addr()
+        self.addr = None
         [self.hot(i, False) for i in self.heat]
         self.started = False
 
@@ -173,28 +174,6 @@ class Frame(wx.Frame):
             hcenter(self.reset_button),
             label(""),
             hcenter(info),
-            # hcenter(pair(
-            #     vbox([
-            #         label("Serial"),
-            #         label("Voltage"),
-            #         label("Current"),
-            #         label("Temp."),
-            #         label("Speed"),
-            #         label("SDA"),
-            #         label("SCL"),
-            #         label("Running"),
-            #     ]),
-            #     vbox([
-            #         self.label_serial,
-            #         self.label_voltage,
-            #         self.label_current,
-            #         self.label_temp,
-            #         self.label_speed,
-            #         self.label_sda,
-            #         self.label_scl,
-            #         self.label_uptime,
-            #     ])
-            # )),
 
             label(""),
             hcenter(devgrid),
@@ -310,7 +289,6 @@ class Frame(wx.Frame):
         self.connect(self.devs[e.EventObject.GetValue()])
 
     def no_addr(self):
-        self.addr = None
         [w.Enable(False) for w in self.dev_widgets]
 
     def choose_addr(self, e):
@@ -340,9 +318,9 @@ class Frame(wx.Frame):
         else:
             l.SetForegroundColour((160,) * 3)
             l.SetFont(self.addrfonts[0])
-            if i == self.addr:
-                self.no_addr()
         l.Enable(s)
+        if i == self.addr:
+            [w.Enable(s) for w in self.dev_widgets]
 
 if __name__ == '__main__':
     app = wx.App(0)
