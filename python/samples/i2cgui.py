@@ -14,6 +14,15 @@ import wx.lib.newevent as NE
 
 import i2cdriver
 
+pullup_codes = {
+  0 : "disabled",
+  1 : "4.7K",
+  2 : "4.3K",
+  4 : "2.2K",
+  5 : "1.5K",
+  7 : "1.1K"
+}
+
 PingEvent, EVT_PING = NE.NewEvent()
 
 def ping_thr(win):
@@ -97,6 +106,9 @@ class Frame(wx.Frame):
         self.label_temp = wx.StaticText(self, label = "-", style = wx.ALIGN_RIGHT)
         self.label_speed = wx.Choice(self, choices = ["100", "400"])
         self.label_speed.Bind(wx.EVT_CHOICE, self.set_speed)
+        pupch = sorted(pullup_codes.values(), reverse = True)
+        self.label_pullups = wx.Choice(self, choices = pupch)
+        self.label_pullups.Bind(wx.EVT_CHOICE, self.set_pullups)
         self.label_sda = wx.StaticText(self, label = "-", style = wx.ALIGN_RIGHT)
         self.label_scl = wx.StaticText(self, label = "-", style = wx.ALIGN_RIGHT)
         self.label_uptime = wx.StaticText(self, label = "-", style = wx.ALIGN_RIGHT)
@@ -106,10 +118,12 @@ class Frame(wx.Frame):
             self.label_current,
             self.label_temp,
             self.label_speed,
+            self.label_pullups,
             self.label_sda,
             self.label_scl,
             self.label_uptime
         ]
+        [d.Enable(False) for d in self.dynamic]
 
         self.Bind(EVT_PING, self.refresh)
 
@@ -164,6 +178,7 @@ class Frame(wx.Frame):
         pair(label("SCL"),      self.label_scl),
         pair(label("Running"),  self.label_uptime),
         pair(label("Speed"),    self.label_speed),
+        pair(label("Pullups"),  self.label_pullups),
         ])
 
         vb = vbox([
@@ -270,6 +285,7 @@ class Frame(wx.Frame):
             self.label_current.SetLabel("%d mA" % self.sd.current)
             self.label_temp.SetLabel("%.1f C" % self.sd.temp)
             self.label_speed.SetSelection({100:0, 400:1}[self.sd.speed])
+            self.label_pullups.SetSelection(pullup_codes[self.sd.pullups & 7])
 
             self.label_sda.SetLabel(lowhigh[self.sd.sda])
             self.label_scl.SetLabel(lowhigh[self.sd.scl])
@@ -309,6 +325,12 @@ class Frame(wx.Frame):
         w = e.EventObject
         s = int(w.GetString(w.GetCurrentSelection()))
         self.sd.setspeed(s)
+
+    def set_pullups(self, e):
+        w = e.EventObject
+        s = w.GetString(w.GetCurrentSelection())
+        code = {v:k for (k,v) in pullup_codes.items()}[s]
+        self.sd.setpullups(code | (code << 3))
 
     def hot(self, i, s):
         l = self.heat[i]
