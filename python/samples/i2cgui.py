@@ -14,14 +14,16 @@ import wx.lib.newevent as NE
 
 import i2cdriver
 
-pullup_codes = {
-  0 : "disabled",
-  1 : "4.7K",
-  2 : "4.3K",
-  4 : "2.2K",
-  5 : "1.5K",
-  7 : "1.1K"
-}
+pullup_vals = [
+ "disabled",
+ "2.2K",
+ "4.3K",
+ "1.5K",
+ "4.7K",
+ "1.5K",
+ "2.2K",
+ "1.1K",
+]
 
 PingEvent, EVT_PING = NE.NewEvent()
 
@@ -106,7 +108,7 @@ class Frame(wx.Frame):
         self.label_temp = wx.StaticText(self, label = "-", style = wx.ALIGN_RIGHT)
         self.label_speed = wx.Choice(self, choices = ["100", "400"])
         self.label_speed.Bind(wx.EVT_CHOICE, self.set_speed)
-        pupch = sorted(pullup_codes.values(), reverse = True)
+        pupch = sorted(set(pullup_vals), reverse = True)
         self.label_pullups = wx.Choice(self, choices = pupch)
         self.label_pullups.Bind(wx.EVT_CHOICE, self.set_pullups)
         self.label_sda = wx.StaticText(self, label = "-", style = wx.ALIGN_RIGHT)
@@ -285,7 +287,7 @@ class Frame(wx.Frame):
             self.label_current.SetLabel("%d mA" % self.sd.current)
             self.label_temp.SetLabel("%.1f C" % self.sd.temp)
             self.label_speed.SetSelection({100:0, 400:1}[self.sd.speed])
-            self.label_pullups.SetSelection(pullup_codes[self.sd.pullups & 7])
+            self.label_pullups.SetStringSelection(pullup_vals[self.sd.pullups & 7])
 
             self.label_sda.SetLabel(lowhigh[self.sd.sda])
             self.label_scl.SetLabel(lowhigh[self.sd.scl])
@@ -295,6 +297,7 @@ class Frame(wx.Frame):
             mm = (rem // 60) % 60
             ss = rem % 60;
             self.label_uptime.SetLabel("%d:%02d:%02d:%02d" % (days, hh, mm, ss))
+            [d.Enable(True) for d in self.dynamic]
 
             if not self.started:
                 devs = self.sd.scan(True)
@@ -329,7 +332,7 @@ class Frame(wx.Frame):
     def set_pullups(self, e):
         w = e.EventObject
         s = w.GetString(w.GetCurrentSelection())
-        code = {v:k for (k,v) in pullup_codes.items()}[s]
+        code = pullup_vals.index(s)
         self.sd.setpullups(code | (code << 3))
 
     def hot(self, i, s):
