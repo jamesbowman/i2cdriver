@@ -1,8 +1,5 @@
 import sys
-import serial
 import time
-import struct
-import random
 
 from i2cdriver import I2CDriver, EDS
 
