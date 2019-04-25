@@ -1,5 +1,7 @@
 set -e
-python2 setup.py install --user
+python setup.py install # --user
+# python samples/i2cgui.py /dev/ttyUSB0
+make -f Makefile.sphinx latexpdf
 exit
 
 echo Python3:

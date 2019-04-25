@@ -25,25 +25,32 @@ class STOP:
 
 class I2CDriver:
     """
-    I2CDriver interface.
+    A connected I2CDriver.
 
-    The following variables are available:
-
-        product     product code e.g. 'i2cdriver1'
-        serial      serial string of I2CDriver
-        uptime      time since I2CDriver boot, in seconds
-        voltage     USB voltage, in V
-        current     current used by attached device, in mA
-        temp        temperature, in degrees C
-        scl         state of SCL
-        sda         state of SDA
-        speed       current device speed in KHz (100 or 400)
-        mode        IO mode (I2C or bitbang)
-        pullups     programmable pullup enable pins
-        ccitt_crc   CCITT-16 CRC of all transmitted and received bytes
+    :ivar product: product code e.g. 'i2cdriver1'
+    :ivar serial: serial string of I2CDriver
+    :ivar uptime: time since I2CDriver boot, in seconds
+    :ivar voltage: USB voltage, in V
+    :ivar current: current used by attached device, in mA
+    :ivar temp: temperature, in degrees C
+    :ivar scl: state of SCL
+    :ivar sda: state of SDA
+    :ivar speed: current device speed in KHz (100 or 400)
+    :ivar mode: IO mode (I2C or bitbang)
+    :ivar pullups: programmable pullup enable pins
+    :ivar ccitt_crc: CCITT-16 CRC of all transmitted and received bytes
 
     """
     def __init__(self, port = "/dev/ttyUSB0", reset = True):
+        """
+        Connect to a hardware i2cdriver.
+
+        :param port: The USB port to connect to
+        :type port: str
+        :param reset: Issue an I2C bus reset on connection
+        :type reset: bool
+
+        """
         self.ser = serial.Serial(port, 1000000, timeout = 1)
 
         # May be in capture or monitor mode, send char and wait for 50 ms
@@ -92,17 +99,81 @@ class I2CDriver:
             return r[0]
 
     def setspeed(self, s):
+        """
+        Set the I2C bus speed.
+
+        :param s: speed in KHz, either 100 or 400
+        :type s: int
+        """
         assert s in (100, 400)
         c = {100:b'1', 400:b'4'}[s]
         self.__ser_w(c)
 
     def setpullups(self, s):
+        """
+        Set the I2CDriver pullup resistors
+
+        :param s: 6-bit pullup mask
+        """
         assert 0 <= s < 64
         self.__ser_w([ord('u'), s])
 
-    def start(self, b, rw):
-        """ start the i2c transaction """
-        self.__ser_w([ord('s'), (b << 1) | rw])
+    def scan(self, silent = False):
+        """ Performs an I2C bus scan.
+        If silent is False, prints a map of devices.
+        Returns a list of the device addresses.
+
+        >>> i2c.scan()
+        -- -- -- -- -- -- -- -- 
+        -- -- -- -- -- -- -- -- 
+        -- -- -- -- 1C -- -- -- 
+        -- -- -- -- -- -- -- -- 
+        -- -- -- -- -- -- -- -- 
+        -- -- -- -- -- -- -- -- 
+        -- -- -- -- -- -- -- -- 
+        -- -- -- -- -- -- -- -- 
+        48 -- -- -- -- -- -- -- 
+        -- -- -- -- -- -- -- -- 
+        -- -- -- -- -- -- -- -- 
+        -- -- -- -- -- -- -- -- 
+        68 -- -- -- -- -- -- -- 
+        -- -- -- -- -- -- -- -- 
+        [28, 72, 104]
+        """
+
+        self.ser.write(b'd')
+        d = struct.unpack("112c", self.ser.read(112))
+        if not silent:
+            for a,p in enumerate(d, 8):
+                if p == b"1":
+                    st = "%02X" % a
+                else:
+                    st = "--"
+                sys.stdout.write(st + " ")
+                if (a % 8) == 7:
+                    sys.stdout.write("\n")
+        return [a for a,p in enumerate(d, 8) if p == b"1"]
+
+    def reset(self):
+        """ Send an I2C bus reset """
+        self.__ser_w(b'x')
+        return struct.unpack("B", self.ser.read(1))[0] & 3
+
+    def start(self, dev, rw):
+        """
+        Start an I2C transaction
+
+        :param dev: 7-bit I2C device address
+        :param rw: read (1) or write (0)
+
+        To write bytes ``[0x12,0x34]`` to device ``0x75``:
+
+        >>> i2c.start(0x75, 0)
+        >>> i2c.write([0x12,034])
+        >>> i2c.stop()
+
+        """
+        self.__ser_w([ord('s'), (dev << 1) | rw])
         return self.ack()
 
     def ack(self):
@@ -110,10 +181,6 @@ class I2CDriver:
         if a & 2:
             raise I2CTimeout
         return (a & 1) != 0
-
-    def stop(self):
-        """ stop the i2c transaction """
-        self.ser.write(b'p')
 
     def read(self, l):
         """ Read l bytes from the I2C device, and NAK the last byte """
@@ -130,7 +197,11 @@ class I2CDriver:
         return b''.join(r)
 
     def write(self, bb):
-        """ Write bb to the I2C device """
+        """
+        Write bytes to the selected I2C device
+
+        :param bb: sequence to write
+        """
         ack = True
         for i in range(0, len(bb), 64):
             sub = bb[i:i + 64]
@@ -139,24 +210,28 @@ class I2CDriver:
             ack = self.ack()
         return ack
 
-    def monitor(self, s):
-        if s:
-            self.__ser_w(b'm')
-            time.sleep(.1)
-        else:
-            self.__ser_w(b' ')
-            time.sleep(.1)
-            self.__echo(0x40)
+    def stop(self):
+        """ stop the i2c transaction """
+        self.ser.write(b'p')
 
     def reboot(self):
         self.__ser_w(b'_')
         time.sleep(.5)
 
-    def reset(self):
-        self.__ser_w(b'x')
-        return struct.unpack("B", self.ser.read(1))[0] & 3
-
     def regrd(self, dev, reg, fmt = "B"):
+        """
+        Read a register from a device.
+
+        :param dev: 7-bit I2C device address
+        :param reg: register address 0-255
+        :param fmt: :py:func:`struct.unpack` format string for the register contents
+
+        If device 0x75 has a 16-bit register 102, it can be read with:
+
+        >>> i2c.regrd(0x75, 102, ">H")
+        4999
+        """
+
         if isinstance(fmt, str):
             n = struct.calcsize(fmt)
             self.__ser_w(b'r' + struct.pack("BBB", dev, reg, n))
@@ -171,6 +246,21 @@ class I2CDriver:
             return self.ser.read(n)
 
     def regwr(self, dev, reg, *vv):
+        """Write a device's register.
+
+        :param dev: 7-bit I2C device address
+        :param reg: register address 0-255
+        :param vv: sequence of values to write
+
+        To set device 0x34 byte register 7 to 0xA1:
+
+        >>> i2c.regwr(0x34, 7, [0xa1])
+
+        If device 0x75 has a big-endian 16-bit register 102 you can set it to 4999 with:
+
+        >>> i2c.regwr(0x75, 102, struct.pack(">H", 4999))
+
+        """
         r = self.start(dev, 0)
         if r:
             r = self.write(struct.pack("B", reg))
@@ -179,34 +269,19 @@ class I2CDriver:
         self.stop()
         return r
 
-    def getstatus(self):
-        """ Update all status variables """
-        self.ser.write(b'?')
-        r = self.ser.read(80)
-        body = r[1:-1].decode() # remove [ and ]
-        (self.product,
-         self.serial,
-         uptime,
-         voltage,
-         current,
-         temp,
-         mode,
-         sda,
-         scl,
-         speed,
-         pullups,
-         ccitt_crc) = body.split()
-        self.uptime = int(uptime)
-        self.voltage = float(voltage)
-        self.current = float(current)
-        self.temp = float(temp)
-        self.mode = mode
-        self.scl = int(scl)
-        self.sda = int(sda)
-        self.speed = int(speed)
-        self.pullups = int(pullups, 16)
-        self.ccitt_crc = int(ccitt_crc, 16)
-        return repr(self)
+    def monitor(self, s):
+        """ Enter or leave monitor mode
+
+        :param s: ``True`` to enter monitor mode, ``False`` to leave
+        """
+
+        if s:
+            self.__ser_w(b'm')
+            time.sleep(.1)
+        else:
+            self.__ser_w(b' ')
+            time.sleep(.1)
+            self.__echo(0x40)
 
     def introspect(self):
         """ Update all status variables """
@@ -232,23 +307,6 @@ class I2CDriver:
             self.uptime,
             self.scl,
             self.sda)
-
-    def scan(self, silent = False):
-        """ Performs an I2C bus scan.
-        If silent is False, prints a map of devices.
-        Returns a list of the device addresses. """
-        self.ser.write(b'd')
-        d = struct.unpack("112c", self.ser.read(112))
-        if not silent:
-            for a,p in enumerate(d, 8):
-                if p == b"1":
-                    st = "%02X" % a
-                else:
-                    st = "--"
-                sys.stdout.write(st + " ")
-                if (a % 8) == 7:
-                    sys.stdout.write("\n")
-        return [a for a,p in enumerate(d, 8) if p == b"1"]
 
     def capture_start(self):
         self.__ser_w([ord('c')])
@@ -321,3 +379,32 @@ class I2CDriver:
                     bits = []
             else:
                 assert 0, "unexpected token"
+
+    def getstatus(self):
+        """ Update all status variables """
+        self.ser.write(b'?')
+        r = self.ser.read(80)
+        body = r[1:-1].decode() # remove [ and ]
+        (self.product,
+         self.serial,
+         uptime,
+         voltage,
+         current,
+         temp,
+         mode,
+         sda,
+         scl,
+         speed,
+         pullups,
+         ccitt_crc) = body.split()
+        self.uptime = int(uptime)
+        self.voltage = float(voltage)
+        self.current = float(current)
+        self.temp = float(temp)
+        self.mode = mode
+        self.scl = int(scl)
+        self.sda = int(sda)
+        self.speed = int(speed)
+        self.pullups = int(pullups, 16)
+        self.ccitt_crc = int(ccitt_crc, 16)
+        return repr(self)
