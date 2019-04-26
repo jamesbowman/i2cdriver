@@ -21,4 +21,5 @@ setup(name='i2cdriver',
         'i2cdriver',
         'EDS',
       ],
+      scripts=['samples/i2cgui.py'],
       )

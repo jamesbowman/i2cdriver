@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import time
 import struct
 import sys
@@ -9,8 +11,13 @@ from functools import partial
 import serial.tools.list_ports as slp
 import serial
 
-import wx
-import wx.lib.newevent as NE
+try:
+    import wx
+    import wx.lib.newevent as NE
+except ImportError:
+    print("i2cgui.py needs wxPython, but it wasn't found.")
+    print("See https://www.wxpython.org/pages/downloads/")
+    sys.exit(1)
 
 import i2cdriver
 

@@ -1,3 +1,3 @@
-python led8x8.py /dev/ttyUSB0
+python mag3110.py /dev/ttyUSB0
 # python EDS-take-a-ticket.py /dev/ttyUSB0
 # python i2cgui.py
