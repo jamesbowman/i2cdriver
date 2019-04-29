@@ -17,11 +17,46 @@ class InternalState(OrderedDict):
     def __repr__(self):
         return "".join(["%8s %4x\n" % (k, v) for (k, v) in self.items()])
 
-class START:
-    pass
+class _I2CEvent:
+    def rrw(self):
+        return ["WRITE", "READ"][self.rw]
+    def rack(self):
+        return ["NACK", "ACK"][self.ack]
 
-class STOP:
-    pass
+class START(_I2CEvent):
+    def __init__(self, addr, rw, ack):
+        self.addr = addr
+        self.rw = rw
+        self.ack = ack
+    def __repr__(self):
+        return "<START 0x%02x %s %s>" % (self.addr, self.rrw(), self.rack())
+    def dump(self, f, fmt):
+        if fmt == "csv":
+            f.writerow(("START", self.rrw(), str(self.addr), self.rack()))
+        else:
+            assert False, "unsupported format"
+
+class STOP(_I2CEvent):
+    def __repr__(self):
+        return "<STOP>"
+    def dump(self, f, fmt):
+        if fmt == "csv":
+            f.writerow(("STOP", None, None, None))
+        else:
+            assert False, "unsupported format"
+
+class BYTE(_I2CEvent):
+    def __init__(self, b, rw, ack):
+        self.b = b
+        self.rw = rw
+        self.ack = ack
+    def __repr__(self):
+        return "<%s 0x%02x %s>" % (self.rrw(), self.b, self.rack())
+    def dump(self, f, fmt):
+        if fmt == "csv":
+            f.writerow(("BYTE", self.rrw(), str(self.b), self.rack()))
+        else:
+            assert False, "unsupported format"
 
 class I2CDriver:
     """
@@ -308,7 +343,7 @@ class I2CDriver:
             self.scl,
             self.sda)
 
-    def capture_start(self):
+    def capture_start(self, start = START, abyte = BYTE, stop = STOP):
         self.__ser_w([ord('c')])
         def nstream():
             while 1:
@@ -316,14 +351,17 @@ class I2CDriver:
                     yield (b >> 4) & 0xf
                     yield b        & 0xf
         def parser():
+            starting = False
+            rw = 0
             for n in nstream():
                 if n == 0:
                     pass
                 elif n == 1:
-                    yield START
+                    starting = True
                     bits = []
                 elif n == 2:
-                    yield STOP
+                    yield stop()
+                    starting = True
                     bits = []
                 elif n in (8,9,10,11,12,13,14,15):
                     # w(str(n&7))
@@ -332,7 +370,12 @@ class I2CDriver:
                         b9 = (bits[0] << 6) | (bits[1] << 3) | bits[2]
                         b8 = (b9 >> 1)
                         ack = b9 & 1
-                        yield (b8, ack == 0)
+                        if starting:
+                            rw = b8 & 1
+                            yield start(b8 >> 1, rw, ack == 0)
+                            starting = False
+                        else:
+                            yield abyte(b8, rw, ack == 0)
                         bits = []
                 else:
                     assert 0, "unexpected token"
