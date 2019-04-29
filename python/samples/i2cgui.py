@@ -5,6 +5,7 @@ import struct
 import sys
 import os
 import re
+import csv
 import threading
 from functools import partial
 
@@ -39,6 +40,21 @@ def ping_thr(win):
         wx.PostEvent(win, PingEvent())
         time.sleep(1)
 
+StopCapture = False
+
+def capture_thr(sd, log_csv):
+    global StopCapture
+    c = sd.capture_start(True)
+    with open(log_csv, 'w') as csvfile:
+        logcsv = csv.writer(csvfile)
+        for token in c():
+            if token:
+                token.dump(logcsv, "csv")   # write to CSV
+            if StopCapture:
+                break
+    StopCapture = False
+    sd.capture_stop()
+
 class HexTextCtrl(wx.TextCtrl):
     def __init__(self, *args, **kwargs):
         super(HexTextCtrl, self).__init__(*args, **kwargs)
@@ -51,6 +67,12 @@ class HexTextCtrl(wx.TextCtrl):
         value = "".join([c for c in value if c in hex])
         self.ChangeValue(value)
         self.SetSelection(*selection)
+
+class MyDialog(wx.Dialog): 
+   def __init__(self, parent, title): 
+      super(MyDialog, self).__init__(parent, title = title, size = (250,150)) 
+      panel = wx.Panel(self) 
+      self.btn = wx.Button(panel, wx.ID_OK, label = "ok", size = (50,20), pos = (75,50))
 
 class Frame(wx.Frame):
     def __init__(self, preferred = None):
@@ -73,6 +95,12 @@ class Frame(wx.Frame):
         def rpair(a, b):
             r = wx.BoxSizer(wx.HORIZONTAL)
             r.Add(a, 0, wx.LEFT)
+            r.Add(b, 1, wx.RIGHT)
+            return r
+
+        def epair(a, b):
+            r = wx.BoxSizer(wx.HORIZONTAL)
+            r.Add(a, 1, wx.LEFT)
             r.Add(b, 1, wx.RIGHT)
             return r
 
@@ -149,6 +177,10 @@ class Frame(wx.Frame):
         self.ckM = wx.ToggleButton(self, label = "Monitor mode")
         self.ckM.Bind(wx.EVT_TOGGLEBUTTON, self.check_m)
 
+        self.capture = False
+        self.ckC = wx.ToggleButton(self, label = "Capture mode")
+        self.ckC.Bind(wx.EVT_TOGGLEBUTTON, self.check_c)
+
         self.txVal = HexTextCtrl(self, size=wx.DefaultSize, style=0)
 
         self.rxVal = HexTextCtrl(self, size=wx.DefaultSize, style=wx.TE_READONLY)
@@ -194,7 +226,7 @@ class Frame(wx.Frame):
             label(""),
             hcenter(cb),
             label(""),
-            hcenter(self.ckM),
+            hcenter(epair(self.ckM, self.ckC)),
             hcenter(self.reset_button),
             label(""),
             hcenter(info),
@@ -286,7 +318,7 @@ class Frame(wx.Frame):
         self.refresh(None)
 
     def refresh(self, e):
-        if self.sd and not self.monitor:
+        if self.sd and not self.monitor and not self.capture:
             lowhigh = ["LOW", "HIGH"]
             self.sd.getstatus()
             self.label_serial.SetLabel(self.sd.serial)
@@ -330,6 +362,32 @@ class Frame(wx.Frame):
         [d.Enable(not self.monitor) for d in self.dynamic]
         if self.monitor:
             [self.hot(i, False) for i in self.heat]
+
+    def check_c(self, e):
+        global StopCapture
+        cm = e.EventObject.GetValue()
+        # self.sd.monitor(self.monitor)
+        if cm:
+            openFileDialog = wx.FileDialog(self, "CSV dump to file", "", "", 
+                  "CSV files (*.csv)|*.csv", 
+                         wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT)
+            openFileDialog.ShowModal()
+            self.log_csv = openFileDialog.GetPath()
+            openFileDialog.Destroy()
+
+            StopCapture = False
+            t = threading.Thread(target=capture_thr, args=(self.sd, self.log_csv))
+            t.setDaemon(True)
+            t.start()
+        else:
+            StopCapture = True
+            wx.MessageBox("Capture finished. Traffic written to " + self.log_csv, "Message" ,wx.OK | wx.ICON_INFORMATION)
+            while StopCapture:
+                pass
+        [d.Enable(not cm) for d in self.dynamic]
+        if cm:
+            [self.hot(i, False) for i in self.heat]
+        self.capture = cm
 
     def set_speed(self, e):
         w = e.EventObject

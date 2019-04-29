@@ -343,19 +343,26 @@ class I2CDriver:
             self.scl,
             self.sda)
 
-    def capture_start(self, start = START, abyte = BYTE, stop = STOP):
+    def capture_start(self, idle=False, start = START, abyte = BYTE, stop = STOP):
         self.__ser_w([ord('c')])
         def nstream():
-            while 1:
-                for b in self.ser.read(256):
-                    yield (b >> 4) & 0xf
-                    yield b        & 0xf
+            while True:
+                bb = self.ser.read(256)
+                if PYTHON2:
+                    for b in bb:
+                        yield (ord(b) >> 4) & 0xf
+                        yield ord(b)        & 0xf
+                else:
+                    for b in bb:
+                        yield (b >> 4) & 0xf
+                        yield b        & 0xf
         def parser():
             starting = False
             rw = 0
             for n in nstream():
                 if n == 0:
-                    pass
+                    if idle:
+                        yield None
                 elif n == 1:
                     starting = True
                     bits = []
