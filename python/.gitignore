@@ -1,0 +1,5 @@
+_build/
+build/
+dist/
+i2cdriver.egg-info/
+*.csv
