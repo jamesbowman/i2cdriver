@@ -18,6 +18,7 @@
 
 #if defined(WIN32)  // {
 
+#define NOMINMAX
 #include <windows.h>
 
 void ErrorExit(const char *func_name) 
@@ -39,8 +40,8 @@ void ErrorExit(const char *func_name)
 
     // Display the error message and exit the process
 
-    char mm[lstrlen((LPCTSTR)lpMsgBuf) + strlen(func_name) + 40];
-    sprintf(mm, "%s failed with error %lu:\n%s", func_name, dw, (char*)lpMsgBuf); 
+    char mm[256];
+    snprintf(mm, sizeof(mm), "%s failed with error %lu:\n%s", func_name, dw, (char*)lpMsgBuf); 
     MessageBox(NULL, (LPCTSTR)mm, TEXT("Error"), MB_OK); 
 
     LocalFree(lpMsgBuf);
