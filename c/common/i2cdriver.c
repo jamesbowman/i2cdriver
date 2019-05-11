@@ -5,8 +5,8 @@
 #include <fcntl.h>
 #if !defined(WIN32)
 #include <sys/ioctl.h>
-#endif
 #include <unistd.h>
+#endif
 #include <errno.h>
 #define __STDC_FORMAT_MACROS
 #include <inttypes.h>
@@ -55,7 +55,7 @@ HANDLE openSerialPort(const char *portname)
     if (portname[0] == 'C')
         fmt = "\\\\.\\%s";
     else
-        fmt == "%s";
+        fmt = "%s";
     snprintf(fullname, sizeof(fullname), fmt, portname);
     DWORD  accessdirection = GENERIC_READ | GENERIC_WRITE;
     HANDLE hSerial = CreateFile((LPCSTR)fullname,
