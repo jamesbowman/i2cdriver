@@ -4,7 +4,7 @@ import time
 import struct
 from collections import OrderedDict
 
-__version__ = '0.0.5'
+__version__ = '0.0.6'
 
 PYTHON2 = (sys.version_info < (3, 0))
 
@@ -280,16 +280,16 @@ class I2CDriver:
             self.__ser_w(b'r' + struct.pack("BBB", dev, reg, n))
             return self.ser.read(n)
 
-    def regwr(self, dev, reg, *vv):
+    def regwr(self, dev, reg, vv):
         """Write a device's register.
 
         :param dev: 7-bit I2C device address
         :param reg: register address 0-255
-        :param vv: sequence of values to write
+        :param vv: value to write. Either a single byte, or a sequence
 
         To set device 0x34 byte register 7 to 0xA1:
 
-        >>> i2c.regwr(0x34, 7, [0xa1])
+        >>> i2c.regwr(0x34, 7, 0xa1)
 
         If device 0x75 has a big-endian 16-bit register 102 you can set it to 4999 with:
 
@@ -300,6 +300,8 @@ class I2CDriver:
         if r:
             r = self.write(struct.pack("B", reg))
             if r:
+                if isinstance(vv, int):
+                    vv = struct.pack("B", vv)
                 r = self.write(vv)
         self.stop()
         return r
