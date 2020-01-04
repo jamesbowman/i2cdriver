@@ -143,6 +143,7 @@ class I2CDriver:
         assert s in (100, 400)
         c = {100:b'1', 400:b'4'}[s]
         self.__ser_w(c)
+        self.speed = s
 
     def setpullups(self, s):
         """
@@ -152,6 +153,7 @@ class I2CDriver:
         """
         assert 0 <= s < 64
         self.__ser_w([ord('u'), s])
+        self.pullups = s
 
     def scan(self, silent = False):
         """ Performs an I2C bus scan.
