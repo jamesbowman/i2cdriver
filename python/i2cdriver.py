@@ -35,6 +35,8 @@ class START(_I2CEvent):
             f.writerow(("START", self.rrw(), str(self.addr), self.rack()))
         else:
             assert False, "unsupported format"
+    def __eq__(self, other):
+        return (self.addr, self.rw, self.ack) == (other.addr, other.rw, other.ack)
 
 class STOP(_I2CEvent):
     def __repr__(self):
@@ -44,6 +46,8 @@ class STOP(_I2CEvent):
             f.writerow(("STOP", None, None, None))
         else:
             assert False, "unsupported format"
+    def __eq__(self, other):
+        return isinstance(other, STOP)
 
 class BYTE(_I2CEvent):
     def __init__(self, b, rw, ack):
@@ -57,6 +61,8 @@ class BYTE(_I2CEvent):
             f.writerow(("BYTE", self.rrw(), str(self.b), self.rack()))
         else:
             assert False, "unsupported format"
+    def __eq__(self, other):
+        return (self.b, self.rw, self.ack) == (other.b, other.rw, other.ack)
 
 class I2CDriver:
     """
