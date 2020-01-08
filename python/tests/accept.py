@@ -111,6 +111,13 @@ class TestDUT(unittest.TestCase):
         self.assertEqual(self.lm75_read(i2, 3), 0x5000)
         self.stacksame()
 
+    def test_regrd256(self):
+        i2 = self.i2
+        reg = 3
+        self.lm75_write(i2, reg, 0x7480)
+        for n in (127, 128, 129):
+            self.assertEqual(i2.regrd(0x48, reg, ">" + str(n) + "h"), (0x7480,) * n)
+
     def test_setspeed(self):
         i2 = self.init()
         self.stack0()

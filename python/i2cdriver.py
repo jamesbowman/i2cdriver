@@ -267,7 +267,7 @@ class I2CDriver:
 
         :param dev: 7-bit I2C device address
         :param reg: register address 0-255
-        :param fmt: :py:func:`struct.unpack` format string for the register contents
+        :param fmt: :py:func:`struct.unpack` format string for the register contents, or an integer byte count
 
         If device 0x75 has a 16-bit register 102, it can be read with:
 
@@ -276,17 +276,23 @@ class I2CDriver:
         """
 
         if isinstance(fmt, str):
-            n = struct.calcsize(fmt)
-            self.__ser_w(b'r' + struct.pack("BBB", dev, reg, n))
-            r = struct.unpack(fmt, self.ser.read(n))
+            r = struct.unpack(fmt, self.regrd(dev, reg, struct.calcsize(fmt)))
             if len(r) == 1:
                 return r[0]
             else:
                 return r
         else:
             n = fmt
-            self.__ser_w(b'r' + struct.pack("BBB", dev, reg, n))
-            return self.ser.read(n)
+            if n <= 256:
+                self.__ser_w(b'r' + struct.pack("BBB", dev, reg, n & 0xff))
+                return self.ser.read(n)
+            else:
+                self.start(dev, 0)
+                self.write([reg])
+                self.start(dev, 1)
+                r = self.read(n)
+                self.stop()
+                return r
 
     def regwr(self, dev, reg, vv):
         """Write a device's register.
