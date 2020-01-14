@@ -131,11 +131,11 @@ class TestDUT(unittest.TestCase):
         for i in range(lcnt):
             x = random.randint(0, 255)
             wdata.append(x)
-        print(wdata)
+        # print(wdata)
         i2c.regwr(sa0, 0x00, wdata)
         time.sleep(0.5)
         x = i2c.regrd(sa0, 0x00, "<16B")
-        print(x)
+        # print(x)
 
     def test_setspeed(self):
         i2 = self.init()
