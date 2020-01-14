@@ -1,3 +1,5 @@
+from __future__ import print_function, division
+
 import sys
 import time
 import struct
@@ -11,6 +13,9 @@ AGG = "agg" # blk1
 
 def bit(b, x):
     return 1 & (x >> b)
+
+def byte(x):
+    return struct.pack("B", x)
 
 class TestDUT(unittest.TestCase):
     def setUp(self):
@@ -118,6 +123,20 @@ class TestDUT(unittest.TestCase):
         for n in (127, 128, 129):
             self.assertEqual(i2.regrd(0x48, reg, ">" + str(n) + "h"), (0x7480,) * n)
 
+    def test_regwr(self):
+        i2c = self.i2
+        sa0 = 0x48
+        wdata = []
+        lcnt = 16
+        for i in range(lcnt):
+            x = random.randint(0, 255)
+            wdata.append(x)
+        print(wdata)
+        i2c.regwr(sa0, 0x00, wdata)
+        time.sleep(0.5)
+        x = i2c.regrd(sa0, 0x00, "<16B")
+        print(x)
+
     def test_setspeed(self):
         i2 = self.init()
         self.stack0()
@@ -136,7 +155,7 @@ class TestDUT(unittest.TestCase):
         t1 = time.time()
         i2.capture_stop()
 
-        self.assertEqual(d, bytes(15))
+        self.assertEqual(d, b'\x00' * 15)
         self.assertTrue(0.4 < (t1 - t0) < 0.6)
 
     def test_cap_0(self):
@@ -209,10 +228,10 @@ class TestDUT(unittest.TestCase):
         self.stack0()
         i2.ser.write(b'b')
         for i in range(1000):                           # Square wave for a while
-            i2.ser.write(bytes([0b1111, 0b0101]))
-        i2.ser.write(bytes([0b1010, 0b11010]))          # Float, request a byte
-        self.assertEqual(i2.ser.read(1), bytes([3]))    # both should be high
-        i2.ser.write(bytes([0b0101]))                   # Leave driven low
+            i2.ser.write(byte(0b1111) + byte(0b0101))
+        i2.ser.write(byte(0b1010) + byte(0b11010))      # Float, request a byte
+        self.assertEqual(struct.unpack("B", i2.ser.read(1)), (3, ))    # both should be high
+        i2.ser.write(byte(0b0101))                      # Leave driven low
         i2.ser.write(b'@')
         self.checkmode('B')
         i2.restore()
@@ -226,13 +245,13 @@ class TestDUT(unittest.TestCase):
         if i2.product != "spidriver1":
             return
         for n in [0b1101, 0b1011, 0b0000, 0b1111] + list(range(16)):
-            i2.ser.write(b'b' + bytes([n, 0x40]))
+            i2.ser.write(b'b' + byte(n) + byte(0x40))
             s1 = i2.introspect()
             self.assertEqual(bit(0, n), bit(2, s1["P0MDOUT"]))
             self.assertEqual(bit(1, n), bit(2, s1["P0"]))
             self.assertEqual(bit(2, n), bit(4, s1["P1MDOUT"]))
             self.assertEqual(bit(3, n), bit(4, s1["P1"]))
-            i2.ser.write(b'b' + bytes([0x40]))
+            i2.ser.write(b'b' + byte(0x40))
             s2 = i2.introspect()
             for i in ("P0", "P1", "P0MDOUT", "P1MDOUT"):
                 self.assertEqual(s1[i], s2[i])
@@ -248,9 +267,9 @@ class TestDUT(unittest.TestCase):
         HIGH    = 0b11
         INPUT   = 0b10
         def port(d, sda, scl, read = False):
-            d.ser.write(bytes([sda | (scl << 2) | (int(read) << 4)]))
+            d.ser.write(byte(sda | (scl << 2) | (int(read) << 4)))
             if read:
-                (r,) = d.ser.read(1)
+                (r,) = struct.unpack("B", d.ser.read(1))
                 return (r & 1, (r >> 1) & 1)
 
         for sda in (LOW, HIGH, LOW):
@@ -287,10 +306,10 @@ class TestDUT(unittest.TestCase):
 
         def sample(p, pv):
             i2.setpullups(p)
-            i2.ser.write(b'v' + bytes([pv]))
+            i2.ser.write(b'v' + byte(pv))
             while True:
                 i2.ser.write(b'w')
-                r = i2.ser.read(1)
+                r = struct.unpack("B", i2.ser.read(1))
                 if r[0] == 0:
                     break
             return struct.unpack("2B", i2.ser.read(2))
