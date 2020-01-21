@@ -312,6 +312,15 @@ void i2c_scan(I2CDriver *sd, uint8_t devices[128])
   (void)readFromSerialPort(sd->port, devices + 8, 112);
 }
 
+uint8_t i2c_reset(I2CDriver *sd)
+{
+  charCommand(sd, 'x');
+  uint8_t a[1];
+  if (readFromSerialPort(sd->port, a, 1) != 1)
+    return 0;
+  return a[0];
+}
+
 int i2c_start(I2CDriver *sd, uint8_t dev, uint8_t op)
 {
   uint8_t start[2] = {'s', (dev << 1) | op};
@@ -380,6 +389,15 @@ int i2c_commands(I2CDriver *sd, int argc, char *argv[])
         sd->scl,
         sd->speed
         );
+      break;
+
+    case 'x':
+      {
+        uint8_t sda_scl = i2c_reset(sd);
+        printf("Bus reset. SDA = %d, SCL = %d\n",
+               1 & (sda_scl >> 1),
+               1 & sda_scl);
+      }
       break;
 
     case 'd':
@@ -468,6 +486,7 @@ int i2c_commands(I2CDriver *sd, int argc, char *argv[])
       fprintf(stderr, "Commands are:");
       fprintf(stderr, "\n");
       fprintf(stderr, "  i              display status information (uptime, voltage, current, temperature)\n");
+      fprintf(stderr, "  x              I2C bus reset\n");
       fprintf(stderr, "  d              device scan\n");
       fprintf(stderr, "  w dev <bytes>  write bytes to I2C device dev\n");
       fprintf(stderr, "  p              send a STOP\n");
