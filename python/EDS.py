@@ -14,7 +14,7 @@ class Dig2:
 
     def raw(self, b0, b1):
         """ Set all 8 segments from the bytes b0 and b1 """ 
-        self.i2.regwr(self.a, 0, b0, b1)
+        self.i2.regwr(self.a, 0, struct.pack("BB", b0, b1))
 
     def hex(self, b):
         """ Display a hex number 0-0xff """

@@ -1,0 +1,4 @@
+set -e
+
+# pip install --upgrade --force-reinstall ..
+make html

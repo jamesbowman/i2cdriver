@@ -4,7 +4,7 @@ import time
 import struct
 from collections import OrderedDict
 
-__version__ = '0.0.5'
+__version__ = '0.0.8'
 
 PYTHON2 = (sys.version_info < (3, 0))
 
@@ -35,6 +35,8 @@ class START(_I2CEvent):
             f.writerow(("START", self.rrw(), str(self.addr), self.rack()))
         else:
             assert False, "unsupported format"
+    def __eq__(self, other):
+        return (self.addr, self.rw, self.ack) == (other.addr, other.rw, other.ack)
 
 class STOP(_I2CEvent):
     def __repr__(self):
@@ -44,6 +46,8 @@ class STOP(_I2CEvent):
             f.writerow(("STOP", None, None, None))
         else:
             assert False, "unsupported format"
+    def __eq__(self, other):
+        return isinstance(other, STOP)
 
 class BYTE(_I2CEvent):
     def __init__(self, b, rw, ack):
@@ -57,6 +61,8 @@ class BYTE(_I2CEvent):
             f.writerow(("BYTE", self.rrw(), str(self.b), self.rack()))
         else:
             assert False, "unsupported format"
+    def __eq__(self, other):
+        return (self.b, self.rw, self.ack) == (other.b, other.rw, other.ack)
 
 class I2CDriver:
     """
@@ -143,6 +149,7 @@ class I2CDriver:
         assert s in (100, 400)
         c = {100:b'1', 400:b'4'}[s]
         self.__ser_w(c)
+        self.speed = s
 
     def setpullups(self, s):
         """
@@ -152,6 +159,7 @@ class I2CDriver:
         """
         assert 0 <= s < 64
         self.__ser_w([ord('u'), s])
+        self.pullups = s
 
     def scan(self, silent = False):
         """ Performs an I2C bus scan.
@@ -259,7 +267,7 @@ class I2CDriver:
 
         :param dev: 7-bit I2C device address
         :param reg: register address 0-255
-        :param fmt: :py:func:`struct.unpack` format string for the register contents
+        :param fmt: :py:func:`struct.unpack` format string for the register contents, or an integer byte count
 
         If device 0x75 has a 16-bit register 102, it can be read with:
 
@@ -268,28 +276,34 @@ class I2CDriver:
         """
 
         if isinstance(fmt, str):
-            n = struct.calcsize(fmt)
-            self.__ser_w(b'r' + struct.pack("BBB", dev, reg, n))
-            r = struct.unpack(fmt, self.ser.read(n))
+            r = struct.unpack(fmt, self.regrd(dev, reg, struct.calcsize(fmt)))
             if len(r) == 1:
                 return r[0]
             else:
                 return r
         else:
             n = fmt
-            self.__ser_w(b'r' + struct.pack("BBB", dev, reg, n))
-            return self.ser.read(n)
+            if n <= 256:
+                self.__ser_w(b'r' + struct.pack("BBB", dev, reg, n & 0xff))
+                return self.ser.read(n)
+            else:
+                self.start(dev, 0)
+                self.write([reg])
+                self.start(dev, 1)
+                r = self.read(n)
+                self.stop()
+                return r
 
-    def regwr(self, dev, reg, *vv):
+    def regwr(self, dev, reg, vv):
         """Write a device's register.
 
         :param dev: 7-bit I2C device address
         :param reg: register address 0-255
-        :param vv: sequence of values to write
+        :param vv: value to write. Either a single byte, or a sequence
 
         To set device 0x34 byte register 7 to 0xA1:
 
-        >>> i2c.regwr(0x34, 7, [0xa1])
+        >>> i2c.regwr(0x34, 7, 0xa1)
 
         If device 0x75 has a big-endian 16-bit register 102 you can set it to 4999 with:
 
@@ -300,6 +314,8 @@ class I2CDriver:
         if r:
             r = self.write(struct.pack("B", reg))
             if r:
+                if isinstance(vv, int):
+                    vv = struct.pack("B", vv)
                 r = self.write(vv)
         self.stop()
         return r

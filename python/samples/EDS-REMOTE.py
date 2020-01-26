@@ -5,6 +5,7 @@ from i2cdriver import I2CDriver, EDS
 
 if __name__ == '__main__':
     i2 = I2CDriver(sys.argv[1], True)
+    i2.setspeed(400)
 
     d = EDS.Remote(i2)
 
@@ -17,3 +18,4 @@ if __name__ == '__main__':
         if r is not None:
             (code, timestamp) = r
             print("Raw code: %02x %02x %02x %02x (time %.2f)" % (code[0], code[1], code[2], code[3], timestamp))
+        time.sleep(.25)
