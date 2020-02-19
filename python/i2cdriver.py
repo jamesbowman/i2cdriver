@@ -68,7 +68,15 @@ class I2CDriver:
     """
     A connected I2CDriver.
 
-    :ivar product: product code e.g. 'i2cdriver1'
+    :param port: The USB port to connect to
+    :type port: str
+    :param reset: Issue an I2C bus reset on connection
+    :type reset: bool
+
+    After connection, the following object variables reflect the current values of the I2CDriver.
+    They are updated by calling :py:meth:`getstatus`.
+
+    :ivar product: product code e.g. 'i2cdriver1' or 'i2cdriverm'
     :ivar serial: serial string of I2CDriver
     :ivar uptime: time since I2CDriver boot, in seconds
     :ivar voltage: USB voltage, in V
@@ -269,7 +277,7 @@ class I2CDriver:
         :param reg: register address 0-255
         :param fmt: :py:func:`struct.unpack` format string for the register contents, or an integer byte count
 
-        If device 0x75 has a 16-bit register 102, it can be read with:
+        If device 0x75 has a 16-bit unsigned big-endian register 102, it can be read with:
 
         >>> i2c.regrd(0x75, 102, ">H")
         4999
@@ -335,7 +343,6 @@ class I2CDriver:
             self.__echo(0x40)
 
     def introspect(self):
-        """ Update all status variables """
         self.ser.write(b'J')
         r = self.ser.read(80)
         assert len(r) == 80, r
@@ -360,6 +367,11 @@ class I2CDriver:
             self.sda)
 
     def capture_start(self, idle=False, start = START, abyte = BYTE, stop = STOP):
+        """Enter I2C capture mode, capturing I2C transactions.
+        :param idle: If ``True`` the generator returns ``None`` when the bus is idle. If ``False`` the generator does nothing during bus idle.
+
+        :return: a generator which returns an object for each I2C primitive captured.
+        """
         self.__ser_w([ord('c')])
         def nstream():
             while True:
