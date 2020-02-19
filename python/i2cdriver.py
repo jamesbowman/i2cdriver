@@ -124,7 +124,7 @@ class I2CDriver:
             return
         if reset or (self.scl, self.sda) != (1, 1):
             if self.reset() != 3:
-                assert 0, "I2C bus is busy"
+                raise I2CTimeout("Bus failed to reset - check connected devices")
             self.getstatus()
         self.setspeed(100)
 
