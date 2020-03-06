@@ -18,7 +18,9 @@
 
 #if defined(WIN32)  // {
 
+#ifndef NOMINMAX
 #define NOMINMAX
+#endif
 #include <windows.h>
 
 void ErrorExit(const char *func_name) 
@@ -323,7 +325,7 @@ uint8_t i2c_reset(I2CDriver *sd)
 
 int i2c_start(I2CDriver *sd, uint8_t dev, uint8_t op)
 {
-  uint8_t start[2] = {'s', (dev << 1) | op};
+  uint8_t start[2] = {'s', (uint8_t)((dev << 1) | op)};
   writeToSerialPort(sd->port, start, sizeof(start));
   return i2c_ack(sd);
 }
@@ -365,6 +367,56 @@ void i2c_read(I2CDriver *sd, uint8_t bytes[], size_t nn)
 void i2c_monitor(I2CDriver *sd, int enable)
 {
   charCommand(sd, enable ? 'm' : '@');
+}
+
+void i2c_capture(I2CDriver *sd)
+{
+  printf("Capture started\n");
+  charCommand(sd, 'c');
+  uint8_t bytes[1];
+
+  int starting = 0;
+  int nbits = 0, bits = 0;
+  while (1) {
+    int i;
+    readFromSerialPort(sd->port, bytes, 1);
+    for (i = 0; i < 2; i++) {
+      int symbol = (i == 0) ? (bytes[0] >> 4) : (bytes[0] & 0xf);
+      switch (symbol) {
+        case 0:
+          break;
+        case 1:
+          starting = 1;
+          break;
+        case 2:
+          printf("STOP\n");
+          starting = 1;
+          break;
+        case 8:
+        case 9:
+        case 10:
+        case 11:
+        case 12:
+        case 13:
+        case 14:
+        case 15:
+          bits = (bits << 3) | (symbol & 7);
+          nbits += 3;
+          if (nbits == 9) {
+            int b8 = (bits >> 1), ack = !(bits & 1);
+            if (starting) {
+              starting = 0;
+              printf("START %02x %s", b8 >> 1, (b8 & 1) ? "READ" : "WRITE");
+            } else {
+              printf("BYTE %02x", b8);
+            }
+            printf(" %s\n", ack ? "ACK" : "NAK");
+            nbits = 0;
+            bits = 0;
+          }
+      }
+    }
+  }
 }
 
 int i2c_commands(I2CDriver *sd, int argc, char *argv[])
@@ -479,6 +531,12 @@ int i2c_commands(I2CDriver *sd, int argc, char *argv[])
       }
       break;
 
+    case 'c':
+      {
+        i2c_capture(sd);
+      }
+      break;
+
     default:
     badcommand:
       fprintf(stderr, "Bad command '%s'\n", token);
@@ -492,6 +550,7 @@ int i2c_commands(I2CDriver *sd, int argc, char *argv[])
       fprintf(stderr, "  p              send a STOP\n");
       fprintf(stderr, "  r dev N        read N bytes from I2C device dev, then STOP\n");
       fprintf(stderr, "  m              enter I2C bus monitor mode\n");
+      fprintf(stderr, "  c              enter I2C bus capture mode\n");
       fprintf(stderr, "\n");
 
       return 1;

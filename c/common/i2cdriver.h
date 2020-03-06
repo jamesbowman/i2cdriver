@@ -36,6 +36,7 @@ int  i2c_start(I2CDriver *sd, uint8_t dev, uint8_t op);
 void i2c_stop(I2CDriver *sd);
 
 void i2c_monitor(I2CDriver *sd, int enable);
+void i2c_capture(I2CDriver *sd);
 
 int i2c_commands(I2CDriver *sd, int argc, char *argv[]);
 
