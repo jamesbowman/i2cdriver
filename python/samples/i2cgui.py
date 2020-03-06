@@ -49,6 +49,7 @@ def capture_thr(sd, log_csv):
         logcsv = csv.writer(csvfile)
         for token in c():
             if token:
+                sd.dumpcount += 1
                 token.dump(logcsv, "csv")   # write to CSV
             if StopCapture:
                 break
@@ -341,7 +342,7 @@ class Frame(wx.Frame):
             self.label_uptime.SetLabel("%d:%02d:%02d:%02d" % (days, hh, mm, ss))
             [d.Enable(True) for d in self.dynamic]
 
-            if not self.started:
+            if not self.started and (self.sd.sda == 1) and (self.sd.scl == 1):
                 devs = self.sd.scan(True)
                 for i,l in self.heat.items():
                     self.hot(i, i in devs)
@@ -377,14 +378,17 @@ class Frame(wx.Frame):
             openFileDialog.ShowModal()
             self.log_csv = openFileDialog.GetPath()
             openFileDialog.Destroy()
-
+            if self.log_csv == u"":
+                e.EventObject.SetValue(False)
+                return
             StopCapture = False
+            self.sd.dumpcount = 0
             t = threading.Thread(target=capture_thr, args=(self.sd, self.log_csv))
             t.setDaemon(True)
             t.start()
         else:
             StopCapture = True
-            wx.MessageBox("Capture finished. Traffic written to " + self.log_csv, "Message" ,wx.OK | wx.ICON_INFORMATION)
+            wx.MessageBox("Capture finished. %d events written to \"%s\"" % (self.sd.dumpcount, self.log_csv), "Message", wx.OK | wx.ICON_INFORMATION)
             while StopCapture:
                 pass
         [d.Enable(not cm) for d in self.dynamic]
