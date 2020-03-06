@@ -323,7 +323,7 @@ uint8_t i2c_reset(I2CDriver *sd)
 
 int i2c_start(I2CDriver *sd, uint8_t dev, uint8_t op)
 {
-  uint8_t start[2] = {'s', (dev << 1) | op};
+  uint8_t start[2] = {'s', (uint8_t)((dev << 1) | op)};
   writeToSerialPort(sd->port, start, sizeof(start));
   return i2c_ack(sd);
 }
