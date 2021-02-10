@@ -13,7 +13,7 @@ that shows a live "dashboard" of all the I²C activity.
    :maxdepth: 2
    :caption: Contents:
 
-The main page for I²CDriver includes the complete User Guide:
+The I²CDriver User Guide has complete information on the hardware:
 
 https://i2cdriver.com/i2cdriver.pdf
 
