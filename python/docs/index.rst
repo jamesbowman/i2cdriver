@@ -1,31 +1,20 @@
-.. i2cdriver documentation master file, created by
-   sphinx-quickstart on Thu Jan 16 10:21:28 2020.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
+i2cdriver
+=========
 
-Excamera I2CDriver Python API
-=============================
-
-
-zxxx
+I²CDriver is an easy-to-use, open source tool for controlling I²C devices over USB.
+It works with Windows, Mac, and Linux, and has a built-in color screen
+that shows a live "dashboard" of all the I²C activity.
 
 .. toctree::
    :maxdepth: 2
+   :caption: Contents:
 
-xxcc
+The main page for I²CDriver includes the complete User Guide:
 
-Official packages are available on PyPI.
-
-https://pypi.org/project/i2cdriver/
-
-
-The main page for I2CDriver includes the complete User Guide:
-
-https://i2cdriver.com
-
+https://i2cdriver.com/i2cdriver.pdf
 
 System Requirements
--------------------
+===================
 
 Because it is a pure Python module, ``i2cdriver`` can run on any system supported by ``pyserial``.
 This includes:
