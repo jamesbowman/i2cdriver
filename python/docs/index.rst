@@ -2,6 +2,7 @@ i2cdriver
 =========
 
 .. image:: /images/i2cdriver-hero-800.jpg
+   :target: https:i2cdriver.com
 
 `I²CDriver <https:i2cdriver.com>`_
 is an easy-to-use, open source tool for controlling I²C devices over USB.
