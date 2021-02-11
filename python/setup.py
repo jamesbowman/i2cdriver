@@ -22,4 +22,7 @@ setup(name='i2cdriver',
         'EDS',
       ],
       scripts=['samples/i2cgui.py'],
+      project_urls={
+        'Documentation': 'https://i2cdriver.readthedocs.io/en/latest/',
+      }
       )
