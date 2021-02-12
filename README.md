@@ -1,6 +1,7 @@
 ![logo](/images/logo.png)
 
 [![Build Status](https://travis-ci.org/jamesbowman/i2cdriver.svg?branch=master)](https://travis-ci.org/jamesbowman/i2cdriver)
+[![Documentation Status](https://readthedocs.org/projects/i2cdriver/badge/?version=latest)](https://i2cdriver.readthedocs.io/en/latest/?badge=latest)
 
 I2CDriver is a tool for controlling any I2C device from your PC's USB port,
 and can also monitor and capture I2C traffic.
