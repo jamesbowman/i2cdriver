@@ -2,9 +2,9 @@ i2cdriver
 =========
 
 .. image:: /images/i2cdriver-hero-800.jpg
-   :target: https:i2cdriver.com
+   :target: https://i2cdriver.com
 
-`I²CDriver <https:i2cdriver.com>`_
+`I²CDriver <https://i2cdriver.com>`_
 is an easy-to-use, open source tool for controlling I²C devices over USB.
 It works with Windows, Mac, and Linux, and has a built-in color screen
 that shows a live "dashboard" of all the I²C activity.
