@@ -184,8 +184,14 @@ void writeToSerialPort(int fd, const uint8_t *b, size_t s)
   for (i = 0; i < s; i++)
     printf("%02x ", 0xff & b[i]);
   printf("\n");
-#endif
+#endif  
 }
+
+void closeSerialPort(HANDLE hSerial)
+{
+    close((int)hSerial);
+}
+
 #endif              // }
 
 // ******************************  CCITT CRC  *********************************
@@ -266,6 +272,15 @@ void i2c_connect(I2CDriver *sd, const char* portname)
   sd->connected = 1;
   i2c_getstatus(sd);
   sd->e_ccitt_crc = sd->ccitt_crc;
+}
+
+void i2c_disconnect(I2CDriver *sd)
+{
+  if (sd->connected) {
+    closeSerialPort(sd->port);
+    sd->port = -1;
+    sd->connected = 0;
+  }
 }
 
 static void charCommand(I2CDriver *sd, char c)
