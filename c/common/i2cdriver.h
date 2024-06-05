@@ -2,6 +2,7 @@
 #define I2CDRIVER_H
 
 #include <stdint.h>
+#include <stdbool.h>
 
 #if defined(WIN32)
 #include <windows.h>
@@ -35,6 +36,8 @@ int  i2c_write(I2CDriver *sd, const uint8_t bytes[], size_t nn);
 void i2c_read(I2CDriver *sd, uint8_t bytes[], size_t nn);
 int  i2c_start(I2CDriver *sd, uint8_t dev, uint8_t op);
 void i2c_stop(I2CDriver *sd);
+
+bool i2c_setbaud(I2CDriver *sd, int kbaud);
 
 void i2c_monitor(I2CDriver *sd, int enable);
 void i2c_capture(I2CDriver *sd);
