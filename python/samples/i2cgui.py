@@ -263,8 +263,7 @@ class Frame(wx.Frame):
         if d1 is not None:
             cb.SetValue(d1)
 
-        t = threading.Thread(target=ping_thr, args=(self, ))
-        t.setDaemon(True)
+        t = threading.Thread(target=ping_thr, args=(self, ), daemon=True)
         t.start()
 
     def start(self, rw):
