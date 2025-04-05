@@ -2,15 +2,15 @@
 
 set -e
 
-cd python
-if [[ $TRAVIS_OS_NAME == 'osx' ]];
-then
-  python setup.py install
-else
-  python setup.py install --user
-fi
-cd ..
-python -c 'from i2cdriver import I2CDriver' 
+# cd python
+# if [[ $TRAVIS_OS_NAME == 'osx' ]];
+# then
+#   python setup.py install
+# else
+#   python setup.py install --user
+# fi
+# cd ..
+# python -c 'from i2cdriver import I2CDriver' 
 
 cd c
 make -f linux/Makefile
