@@ -324,18 +324,25 @@ void i2c_getstatus(I2CDriver *sd)
     sd->mode = mode[0];
 }
 
-bool i2c_setbaud(I2CDriver *sd, unsigned int kbaud)
+bool i2c_setspeed(I2CDriver *sd, unsigned int speed_khz)
 {
-  if (kbaud == sd->speed) {
+  uint8_t ch;
+
+  if (speed_khz == sd->speed) {
     return true;
   }
-  if ((kbaud != 100) || (kbaud != 400)) {
-    return false;
+  switch (speed_khz) {
+    case 100:
+      ch = '1';
+      break;
+    case 400:
+      ch = '4';
+    default:
+      return false;
   }
-  uint8_t ch = (kbaud == 100)?'1':'4';
   writeToSerialPort(sd->port, &ch, 1);
   i2c_getstatus(sd);
-  return (bool)(sd->speed == kbaud);;
+  return (bool)(sd->speed == speed_khz);
 }
 
 void i2c_scan(I2CDriver *sd, uint8_t devices[128])
