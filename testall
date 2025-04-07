@@ -2,8 +2,8 @@
 
 set -e
 
-cd python
-python setup.py install --user
+cd python3
+pip install -e .
 python -c 'from i2cdriver import I2CDriver' 
 cd ..
 
