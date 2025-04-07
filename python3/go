@@ -1,0 +1,5 @@
+set -e
+
+rm -rf __pycache__/ dist/ i2cdriver.egg-info/
+python -m build
+python -m twine upload dist/*

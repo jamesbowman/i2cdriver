@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "i2cdriver"
+version = "1.0.5"
+description = "I2CDriver is a desktop I2C interface"
+readme = "README.md"  # optional, use if you want the long description from a file
+authors = [
+  { name = "James Bowman", email = "jamesb@excamera.com" }
+]
+license = "BSD-3-Clause"
+dependencies = ["pyserial"]
+
+[project.urls]
+Homepage = "http://i2cdriver.com"
+Documentation = "https://i2cdriver.readthedocs.io/en/latest/"
+
+[project.scripts]
+i2cgui = "samples.i2cgui"
+
+[tool.setuptools]
+py-modules = ["i2cdriver", "EDS"]
