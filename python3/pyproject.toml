@@ -18,7 +18,7 @@ Homepage = "http://i2cdriver.com"
 Documentation = "https://i2cdriver.readthedocs.io/en/latest/"
 
 [project.scripts]
-i2cgui = "samples.i2cgui"
+i2cgui = "samples.i2cgui:main"
 
 [tool.setuptools]
 py-modules = ["i2cdriver", "EDS"]
