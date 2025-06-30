@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "i2cdriver"
-version = "1.0.5"
+version = "1.0.6"
 description = "I2CDriver is a desktop I2C interface"
 readme = "README.md"  # optional, use if you want the long description from a file
 authors = [
