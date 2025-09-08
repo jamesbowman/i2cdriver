@@ -25,8 +25,10 @@ For developers: How to make a release
 
 To release Python:
 
+    cd python3
     rm -rf dist/*
-    python setup.py sdist
+    python -m build
+    twine check dist/*
     twine upload dist/*
 
 To build the Windows installer, you first need to build the two executables
