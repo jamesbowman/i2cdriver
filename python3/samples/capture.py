@@ -88,6 +88,12 @@ class TransactionFormatter:
     real STOP closes the final row with a plain ']'. A repeated START
     (no intervening STOP) or a capture abort mid-transaction closes the
     pending row with a red ']' instead, flagging the missing STOP.
+
+    A row that fills exactly at ROW_WIDTH bytes is held back rather than
+    printed immediately: the next token (another BYTE, a STOP, a new
+    START, or abort) decides whether it needs a closer, so that case
+    doesn't lose its bracket. That's the one place output lags by a
+    single token instead of printing the instant a row is full.
     """
 
     def __init__(self):
@@ -112,17 +118,20 @@ class TransactionFormatter:
             self._raw = []
             return out
         elif isinstance(tok, BYTE):
+            if len(self._row) == ROW_WIDTH:
+                # previous row is full; only now do we know it wasn't the
+                # last one, so flush it with no closer and start the next
+                out = self._emit(None)
+                self._row.append(fmt_byte(tok))
+                self._raw.append(tok.b)
+                return out
             self._row.append(fmt_byte(tok))
             self._raw.append(tok.b)
-            if len(self._row) == ROW_WIDTH:
-                return self._emit(None)
             return None
         elif isinstance(tok, STOP):
             if not self._open:
                 return None
             self._open = False
-            if not self._row and not self._first_row:
-                return None  # data ended exactly on a row boundary
             return self._emit("]")
 
     def flush(self):
@@ -130,8 +139,6 @@ class TransactionFormatter:
         if not self._open:
             return None
         self._open = False
-        if not self._row and not self._first_row:
-            return None
         return self._emit(colorize(RED, "]"))
 
     def _emit(self, closer):
