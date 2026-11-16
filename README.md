@@ -23,13 +23,8 @@ Full documentation is at
 For developers: How to make a release
 -------------------------------------
 
-To release Python:
-
-    cd python3
-    rm -rf dist/*
-    python -m build
-    twine check dist/*
-    twine upload dist/*
+To release the Python package, see [RELEASING.md](RELEASING.md) for instructions
+on publishing to PyPI with Trusted Publishing and provenance.
 
 To build the Windows installer, you first need to build the two executables
 ``i2ccl.exe`` and ``i2cgui.exe`` then use an NSIS script to create the installer.
